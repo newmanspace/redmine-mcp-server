@@ -12,7 +12,7 @@ from .subscriptions import SubscriptionManager
 
 logger = logging.getLogger(__name__)
 
-# Redmine API 导入
+# Import Redmine API
 try:
     from .redmine_handler import REDMINE_URL, redmine
     from pyredmine.exceptions import ResourceNotFoundError
@@ -54,11 +54,11 @@ class SubscriptionReporter:
         today = datetime.now().date()
         
         try:
-            # 从数仓获取统计数据
+            # Get statistics from warehouse
             stats = self.warehouse.get_project_daily_stats(project_id, today)
             
             if not stats.get('from_cache', False):
-                # 数仓无数据，从 API 获取
+                # Warehouse has no data, fetch from API
                 return self._generate_brief_from_api(project_id)
             
             return {
@@ -89,10 +89,10 @@ class SubscriptionReporter:
             return {"error": "Redmine client not initialized"}
         
         try:
-            # 获取项目信息
+            # Get project info
             project = redmine.project.get(project_id)
             
-            # 获取今日新建 Issue
+            # Get new issues today
             today = datetime.now().strftime('%Y-%m-%d')
             new_issues = list(redmine.issue.filter(
                 project_id=project_id,
@@ -100,7 +100,7 @@ class SubscriptionReporter:
                 limit=10
             ))
             
-            # 获取高优先级 Issue
+            # Get high priority issues
             high_priority = list(redmine.issue.filter(
                 project_id=project_id,
                 priority_id='1,2,3',
@@ -155,13 +155,13 @@ class SubscriptionReporter:
             if not stats.get('from_cache', False):
                 return self._generate_detailed_from_api(project_id)
             
-            # 获取人员任务量
+            # Get assignee workload
             top_assignees = self.warehouse.get_top_assignees(project_id, today, limit=10)
             
-            # 获取高优先级 Issue
+            # Get high priority issues
             high_priority = self.warehouse.get_high_priority_issues(project_id, today, limit=20)
             
-            # 识别逾期风险 Issue (>30 天未关闭的高优先级)
+            # Identify overdue risk issues (>30 days unclosed high priority)
             overdue_risks = []
             for issue in high_priority:
                 try:
@@ -205,10 +205,10 @@ class SubscriptionReporter:
         try:
             project = redmine.project.get(project_id)
             
-            # 获取所有 Issue
+            # Get all issues
             all_issues = list(redmine.issue.filter(project_id=project_id, limit=500))
             
-            # 统计
+            # Statistics
             by_status = {}
             by_priority = {}
             by_assignee = {}
@@ -222,7 +222,7 @@ class SubscriptionReporter:
                 by_priority[priority] = by_priority.get(priority, 0) + 1
                 by_assignee[assignee] = by_assignee.get(assignee, 0) + 1
             
-            # 高优先级
+            # High priority
             high_priority = [i for i in all_issues if i.priority and i.priority.name in ['立刻', '紧急', '高']]
             
             return {
@@ -267,7 +267,7 @@ class SubscriptionReporter:
             "suggestions": []
         }
         
-        # 逾期风险告警
+        # Overdue risk alert
         if overdue_risks:
             insights["alerts"].append({
                 "type": "overdue_risk",
@@ -276,7 +276,7 @@ class SubscriptionReporter:
                 "count": len(overdue_risks)
             })
         
-        # 负载告警
+        # Workload alert
         for assignee in top_assignees[:3]:
             if assignee.get('total', 0) > 30:
                 insights["alerts"].append({
@@ -287,7 +287,7 @@ class SubscriptionReporter:
                     "task_count": assignee.get('total')
                 })
         
-        # 建议
+        # Recommendations
         if stats.get('today_new', 0) > 20:
             insights["suggestions"].append("今日新增 Issue 较多，建议安排优先级评审")
         
@@ -323,7 +323,7 @@ class SubscriptionReporter:
         lines.append("━━━" * 10)
         lines.append("")
         
-        # 状态快照
+        # Status snapshot
         lines.append("### 📈 状态快照")
         if 'total_issues' in summary:
             lines.append(f"- Issue 总数：{summary.get('total_issues', 'N/A')}")
@@ -334,7 +334,7 @@ class SubscriptionReporter:
         lines.append("")
         
         if level == "detailed":
-            # 详细报告内容
+            # Detailed report content
             if 'priority_breakdown' in report:
                 priority = report['priority_breakdown']
                 lines.append("**优先级分布**:")
@@ -355,7 +355,7 @@ class SubscriptionReporter:
                     lines.append(f"- #{risk.get('issue_id')} {risk.get('subject')[:30]} ({risk.get('age_days')}天)")
                 lines.append("")
         
-        # 高优先级 Issue
+        # High priority Issue
         if 'top_issues' in report or 'high_priority_issues' in report:
             lines.append("### 🔴 高优先级 Issue")
             issues = report.get('top_issues', report.get('high_priority_issues', []))
@@ -370,7 +370,7 @@ class SubscriptionReporter:
         return '\n'.join(lines)
 
 
-# 全局报告器实例
+# Global reporter instance
 reporter: Optional[SubscriptionReporter] = None
 
 

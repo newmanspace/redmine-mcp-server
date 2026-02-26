@@ -62,7 +62,7 @@ class DataWarehouse:
         finally:
             self.connection_pool.putconn(conn)
     
-    # ========== 写操作（仅 Scheduler 调用）==========
+    # ========== Write Operations (Scheduler only) ==========
     
     def upsert_issue(self, issue: Dict[str, Any], snapshot_date: date, 
                      is_new: bool = False, is_closed: bool = False, 
@@ -101,9 +101,9 @@ class DataWarehouse:
                     issue.get('assigned_to', {}).get('name') if issue.get('assigned_to') else None,
                     issue.get('created_on', ''),
                     issue.get('updated_on', ''),
-                    1 if is_new else 0,
-                    1 if is_closed else 0,
-                    1 if is_updated else 0
+                    is_new,
+                    is_closed,
+                    is_updated
                 ))
     
     def refresh_daily_summary(self, project_id: int, snapshot_date: date):
@@ -135,10 +135,10 @@ class DataWarehouse:
                     
                     self.upsert_issue(issue, snapshot_date, is_new, is_closed, is_updated)
                 
-                # 刷新汇总表
+                # Refresh summary table
                 self.refresh_daily_summary(project_id, snapshot_date)
     
-    # ========== 读操作（仅 MCP Tools 调用）==========
+    # ========== Read Operations (MCP Tools only) ==========
     
     def get_issues_snapshot(self, project_id: int, snapshot_date: date) -> List[Dict]:
         """获取指定日期的 Issue 快照"""
@@ -169,20 +169,20 @@ class DataWarehouse:
                         'total': summary['total_issues'],
                         'today_new': summary['new_issues'],
                         'today_closed': summary['closed_issues'],
-                        'today_updated': summary['updated_issues'],
+                        'today_updated': summary.get('updated_issues', 0),
                         'by_status': {
-                            '新建': summary['status_new'],
-                            '进行中': summary['status_in_progress'],
-                            '已解决': summary['status_resolved'],
-                            '已关闭': summary['status_closed'],
-                            '反馈': summary['status_feedback']
+                            '新建': summary.get('status_new', 0),
+                            '进行中': summary.get('status_in_progress', 0),
+                            '已解决': summary.get('status_resolved', 0),
+                            '已关闭': summary.get('status_closed', 0),
+                            '反馈': summary.get('status_feedback', 0)
                         },
                         'by_priority': {
-                            '立刻': summary['priority_immediate'],
-                            '紧急': summary['priority_urgent'],
-                            '高': summary['priority_high'],
-                            '普通': summary['priority_normal'],
-                            '低': summary['priority_low']
+                            '立刻': summary.get('priority_immediate', 0),
+                            '紧急': summary.get('priority_urgent', 0),
+                            '高': summary.get('priority_high', 0),
+                            '普通': summary.get('priority_normal', 0),
+                            '低': summary.get('priority_low', 0)
                         },
                         'from_cache': True
                     }

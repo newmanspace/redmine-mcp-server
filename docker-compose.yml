@@ -38,6 +38,7 @@ services:
       WAREHOUSE_DB_NAME: redmine_warehouse
       WAREHOUSE_DB_USER: redmine_warehouse
       WAREHOUSE_DB_PASSWORD: WarehouseP@ss2026
+      MAX_ISSUES_PER_SYNC: ${MAX_ISSUES_PER_SYNC:-500}
     volumes:
       - ./logs:/app/logs
       - ./data:/app/data

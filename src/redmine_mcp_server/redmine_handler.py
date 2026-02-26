@@ -28,7 +28,7 @@ import uuid
 import json
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, date, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -1909,21 +1909,21 @@ async def get_project_daily_stats(
     try:
         warehouse = DataWarehouse()
         
-        # 解析日期
+        # Parse date
         from datetime import date as date_class
         query_date = datetime.strptime(date, '%Y-%m-%d').date() if date else date_class.today()
         
-        # 检查是否已有今日数据
+        # Check if today data exists
         existing_data = warehouse.get_issues_snapshot(project_id, query_date)
         
         if not existing_data:
-            # 首次查询，同步最新数据
+            # First query, sync latest data
             logger.info(f"No snapshot for {query_date}, syncing from Redmine API...")
             
             api_url = f"{REDMINE_URL}/issues.json"
             headers = {"X-Redmine-API-Key": REDMINE_API_KEY}
             
-            # 分页获取所有 Issue
+            # Paginate to get all issues
             all_issues = []
             offset = 0
             limit = 100
@@ -1945,17 +1945,17 @@ async def get_project_daily_stats(
                 offset += limit
                 logger.info(f"Fetched {len(all_issues)} issues...")
             
-            # 同步到数仓
+            # Sync to warehouse
             yesterday = query_date - timedelta(days=1)
             previous_issues = warehouse.get_issues_snapshot(project_id, yesterday)
             previous_map = {i['issue_id']: i for i in previous_issues}
             warehouse.upsert_issues_batch(project_id, all_issues, query_date, previous_map)
             logger.info(f"Synced {len(all_issues)} issues to warehouse")
         
-        # 从数仓获取统计数据
+        # Get statistics from warehouse
         stats = warehouse.get_project_daily_stats(project_id, query_date)
         
-        # 获取高优先级 Issue
+        # Get high priority issues
         high_priority = warehouse.get_high_priority_issues(project_id, query_date, limit=20)
         stats['high_priority_count'] = len(high_priority)
         stats['high_priority_issues'] = [
@@ -1966,10 +1966,10 @@ async def get_project_daily_stats(
             for issue in high_priority
         ]
         
-        # 获取人员任务量
+        # Get assignee workload
         stats['top_assignees'] = warehouse.get_top_assignees(project_id, query_date, limit=10)
         
-        # 添加对比数据
+        # Add comparison data
         if compare_with == 'yesterday':
             yesterday = query_date - timedelta(days=1)
             yday_stats = warehouse.get_project_daily_stats(project_id, yesterday)
@@ -1986,7 +1986,7 @@ async def get_project_daily_stats(
         return {"error": f"Failed to get stats: {str(e)}"}
 
 
-# ========== 订阅管理工具 ==========
+# ========== Subscription Management Tools ==========
 
 @mcp.tool()
 async def subscribe_project(
@@ -2009,12 +2009,12 @@ async def subscribe_project(
     """
     from .subscriptions import get_subscription_manager
     
-    # 获取当前用户 ID (从上下文或默认)
-    # TODO: 实现用户上下文获取
+    # Get current user ID (from context or default)
+    # TODO: Implement user context retrieval
     user_id = "default_user"
     
-    # 确定推送渠道和 ID
-    # TODO: 根据当前会话渠道自动识别
+    # Determine push channel and ID
+    # TODO: Auto-detect based on current session channel
     channel = "dingtalk"
     channel_id = "default"
     
@@ -2089,14 +2089,14 @@ async def generate_subscription_report(
     level: str = "brief"
 ) -> Dict[str, Any]:
     """
-    生成项目订阅报告（手动触发）
+    Generate project subscription report (manual trigger)
     
     Args:
-        project_id: 项目 ID
-        level: 报告级别 (brief/detailed)
+        project_id: Project ID
+        level: Report level (brief/detailed)
     
     Returns:
-        报告数据
+        Report data
     """
     from .subscription_reporter import get_reporter
     
@@ -2106,6 +2106,149 @@ async def generate_subscription_report(
         return reporter.generate_detailed_report(project_id)
     else:
         return reporter.generate_brief_report(project_id)
+
+
+@mcp.tool()
+async def trigger_full_sync(
+    project_id: Optional[int] = None
+) -> Dict[str, Any]:
+    """
+    Trigger full data sync for warehouse (manual)
+    
+    Args:
+        project_id: Specific project ID (optional, sync all if None)
+    
+    Returns:
+        Sync result
+    """
+    from .redmine_scheduler import get_scheduler
+    from .redmine_warehouse import DataWarehouse
+    
+    scheduler = get_scheduler()
+    
+    if project_id:
+        # Sync single project
+        try:
+            warehouse = DataWarehouse()
+            count = scheduler._sync_project(project_id, incremental=False)
+            return {
+                "success": True,
+                "project_id": project_id,
+                "synced_issues": count,
+                "message": f"Full sync completed for project {project_id}"
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Failed to sync project {project_id}"
+            }
+    else:
+        # Sync all subscribed projects
+        try:
+            # Run in background to avoid timeout
+            import threading
+            def run_sync():
+                scheduler._sync_all_projects(full=True)
+            
+            thread = threading.Thread(target=run_sync, daemon=True)
+            thread.start()
+            
+            return {
+                "success": True,
+                "message": f"Full sync started for {len(scheduler.project_ids)} projects",
+                "projects": scheduler.project_ids,
+                "note": "Sync running in background, check logs for progress"
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": "Failed to start full sync"
+            }
+
+
+@mcp.tool()
+async def trigger_progressive_sync() -> Dict[str, Any]:
+    """
+    Trigger progressive weekly sync (manual)
+    Syncs one week of data for each project per run
+    
+    Returns:
+        Sync result
+    """
+    from .redmine_scheduler import get_scheduler
+    
+    scheduler = get_scheduler()
+    
+    if not scheduler:
+        return {
+            "success": False,
+            "error": "Scheduler not initialized"
+        }
+    
+    try:
+        # Run in background
+        import threading
+        def run_sync():
+            scheduler._sync_all_projects_progressive()
+        
+        thread = threading.Thread(target=run_sync, daemon=True)
+        thread.start()
+        
+        return {
+            "success": True,
+            "message": f"Progressive weekly sync started for {len(scheduler.project_ids)} projects",
+            "projects": scheduler.project_ids,
+            "note": "Each run syncs one week of data. Multiple runs needed to complete full history."
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Failed to start progressive sync"
+        }
+
+
+@mcp.tool()
+async def get_sync_progress() -> Dict[str, Any]:
+    """
+    Get sync progress for all subscribed projects
+    
+    Returns:
+        Sync progress status
+    """
+    from .redmine_scheduler import get_scheduler
+    
+    scheduler = get_scheduler()
+    
+    if not scheduler:
+        return {
+            "success": False,
+            "error": "Scheduler not initialized"
+        }
+    
+    progress_info = {}
+    for project_id in scheduler.project_ids:
+        if project_id in scheduler.project_sync_progress:
+            last_synced = scheduler.project_sync_progress[project_id]
+            days_synced = (datetime.now() - last_synced).days
+            progress_info[project_id] = {
+                "last_synced_week": last_synced.isoformat(),
+                "days_remaining": max(0, days_synced),
+                "status": "in_progress" if days_synced > 7 else "completed"
+            }
+        else:
+            progress_info[project_id] = {
+                "status": "not_started"
+            }
+    
+    return {
+        "success": True,
+        "projects": len(scheduler.project_ids),
+        "progress": progress_info,
+        "sync_count": scheduler._sync_count
+    }
 
 
 if __name__ == "__main__":

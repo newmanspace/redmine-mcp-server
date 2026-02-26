@@ -13,19 +13,19 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-# 订阅配置存储路径
+# Subscription config storage path
 SUBSCRIPTIONS_FILE = os.getenv(
     "SUBSCRIPTIONS_FILE", 
     "./data/subscriptions.json"
 )
 
-# 订阅频率选项
+# Subscription frequency options
 SUBSCRIPTION_FREQUENCIES = Literal["realtime", "daily", "weekly", "monthly"]
 
-# 订阅内容级别
+# Subscription content level
 SUBSCRIPTION_LEVELS = Literal["brief", "detailed"]
 
-# 推送渠道
+# Push channel
 PUSH_CHANNELS = Literal["dingtalk", "telegram", "email"]
 
 
@@ -205,13 +205,13 @@ class SubscriptionManager:
             
             push_time = sub.get("push_time")
             if not push_time:
-                # 没有设置时间，默认推送
+                # No time set, push by default
                 due_subs.append(sub)
                 continue
             
-            # 解析推送时间
+            # Parse push time
             if frequency == "daily":
-                # 格式："09:00"
+                # Format: "09:00"
                 try:
                     hour, minute = map(int, push_time.split(":"))
                     if current_time.hour == hour and current_time.minute >= minute:
@@ -220,7 +220,7 @@ class SubscriptionManager:
                     pass
             
             elif frequency == "weekly":
-                # 格式："Mon 09:00"
+                # Format: "Mon 09:00"
                 try:
                     day_str, time_str = push_time.split(" ", 1)
                     hour, minute = map(int, time_str.split(":"))
@@ -248,7 +248,7 @@ class SubscriptionManager:
         
         sub = self.subscriptions[subscription_id]
         
-        # 更新允许的字段
+        # Update allowed fields
         allowed_fields = ["frequency", "level", "push_time", "enabled"]
         for key, value in kwargs.items():
             if key in allowed_fields:
@@ -293,7 +293,7 @@ class SubscriptionManager:
         }
 
 
-# 全局订阅管理器实例
+# Global subscription manager instance
 subscription_manager: Optional[SubscriptionManager] = None
 
 
