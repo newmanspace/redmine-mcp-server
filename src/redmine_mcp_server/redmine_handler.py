@@ -1910,7 +1910,8 @@ async def get_project_daily_stats(
         warehouse = DataWarehouse()
         
         # 解析日期
-        query_date = datetime.strptime(date, '%Y-%m-%d').date() if date else date.today()
+        from datetime import date as date_class
+        query_date = datetime.strptime(date, '%Y-%m-%d').date() if date else date_class.today()
         
         # 检查是否已有今日数据
         existing_data = warehouse.get_issues_snapshot(project_id, query_date)
@@ -1984,6 +1985,127 @@ async def get_project_daily_stats(
         logger.error(f"Failed to get stats: {e}")
         return {"error": f"Failed to get stats: {str(e)}"}
 
+
+# ========== 订阅管理工具 ==========
+
+@mcp.tool()
+async def subscribe_project(
+    project_id: int,
+    frequency: str = "daily",
+    level: str = "brief",
+    push_time: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    订阅项目报告
+    
+    Args:
+        project_id: 项目 ID
+        frequency: 推送频率 (realtime/daily/weekly/monthly)
+        level: 报告级别 (brief/detailed)
+        push_time: 推送时间 (daily 用 "09:00", weekly 用 "Mon 09:00")
+    
+    Returns:
+        订阅结果
+    """
+    from .subscriptions import get_subscription_manager
+    
+    # 获取当前用户 ID (从上下文或默认)
+    # TODO: 实现用户上下文获取
+    user_id = "default_user"
+    
+    # 确定推送渠道和 ID
+    # TODO: 根据当前会话渠道自动识别
+    channel = "dingtalk"
+    channel_id = "default"
+    
+    manager = get_subscription_manager()
+    result = manager.subscribe(
+        user_id=user_id,
+        project_id=project_id,
+        channel=channel,
+        channel_id=channel_id,
+        frequency=frequency,
+        level=level,
+        push_time=push_time
+    )
+    
+    return result
+
+
+@mcp.tool()
+async def unsubscribe_project(
+    project_id: Optional[int] = None
+) -> Dict[str, Any]:
+    """
+    取消项目订阅
+    
+    Args:
+        project_id: 项目 ID (可选，不传则取消所有订阅)
+    
+    Returns:
+        取消结果
+    """
+    from .subscriptions import get_subscription_manager
+    
+    user_id = "default_user"
+    manager = get_subscription_manager()
+    
+    return manager.unsubscribe(user_id=user_id, project_id=project_id)
+
+
+@mcp.tool()
+async def list_my_subscriptions() -> List[Dict[str, Any]]:
+    """
+    查看我的订阅列表
+    
+    Returns:
+        订阅列表
+    """
+    from .subscriptions import get_subscription_manager
+    
+    user_id = "default_user"
+    manager = get_subscription_manager()
+    
+    return manager.get_user_subscriptions(user_id)
+
+
+@mcp.tool()
+async def get_subscription_stats() -> Dict[str, Any]:
+    """
+    获取订阅统计信息
+    
+    Returns:
+        统计数据
+    """
+    from .subscriptions import get_subscription_manager
+    
+    manager = get_subscription_manager()
+    return manager.get_stats()
+
+
+@mcp.tool()
+async def generate_subscription_report(
+    project_id: int,
+    level: str = "brief"
+) -> Dict[str, Any]:
+    """
+    生成项目订阅报告（手动触发）
+    
+    Args:
+        project_id: 项目 ID
+        level: 报告级别 (brief/detailed)
+    
+    Returns:
+        报告数据
+    """
+    from .subscription_reporter import get_reporter
+    
+    reporter = get_reporter()
+    
+    if level == "detailed":
+        return reporter.generate_detailed_report(project_id)
+    else:
+        return reporter.generate_brief_report(project_id)
 
 
 if __name__ == "__main__":

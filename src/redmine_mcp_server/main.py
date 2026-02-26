@@ -20,6 +20,7 @@ logging.basicConfig(
 
 from .redmine_handler import mcp  # noqa: E402
 from . import redmine_scheduler as scheduler  # noqa: E402
+from . import subscriptions  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,13 @@ def main():
 
     # Initialize warehouse sync scheduler (only for HTTP transport)
     if transport == "streamable-http":
+        # Initialize subscription manager
+        try:
+            subscriptions.init_subscription_manager()
+            logger.info("Subscription manager initialized")
+        except Exception as e:
+            logger.error(f"Failed to initialize subscription manager: {e}")
+        
         sync_enabled = os.getenv("WAREHOUSE_SYNC_ENABLED", "true").lower() == "true"
         if sync_enabled:
             try:

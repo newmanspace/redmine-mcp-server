@@ -27,7 +27,7 @@ services:
       dockerfile: Dockerfile
     container_name: redmine-mcp-server
     entrypoint: ["/app/entrypoint.sh"]
-    command: python -m uvicorn redmine_mcp_server.main:app --host 0.0.0.0 --port 8000
+    command: python -m redmine_mcp_server.main
     env_file:
       - .env.docker
     environment:
@@ -42,6 +42,7 @@ services:
       - ./logs:/app/logs
       - ./data:/app/data
       - ./entrypoint.sh:/app/entrypoint.sh:ro
+      - ./storage:/app/storage
     restart: unless-stopped
     depends_on:
       warehouse-db:
