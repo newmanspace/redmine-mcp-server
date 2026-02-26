@@ -1,22 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Dev/Test Workload Analyzer - CORRECTED VERSION
+Dev/Test Workload Analyzer - Simplified Version
 
-Corrected Logic:
-- Developer: Person who changes issue status TO "测试中" (ready for testing)
-- Tester: Person who changes issue status FROM "测试中" TO "已解决" (testing completed)
+Logic:
+- Developer: User belongs to "Semi Dev Team" or "Semi SPC Team"
+- Tester (Implementation): All other users
 
-Status Flow:
-新建 (1) → 进行中 (2) → 代码审查 (10) → 测试中 (7) → 已解决 (3) → 已关闭 (5)
-                                    ↑              ↑
-                                开发人员        测试人员
+This is a simplified approach based on user groups rather than journal analysis.
 """
 
 import logging
 import requests
 import os
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Set, Optional, Tuple
 
 REDMINE_URL = os.getenv("REDMINE_URL")
 REDMINE_API_KEY = os.getenv("REDMINE_API_KEY")
@@ -28,12 +25,68 @@ class DevTestAnalyzer:
         self.base_url = REDMINE_URL
         self.api_key = REDMINE_API_KEY
         self.headers = {"X-Redmine-API-Key": self.api_key}
-        self.status_testing_id = 7    # "测试中"
-        self.status_resolved_id = 3   # "已解决"
+        self.status_resolved_id = 3  # "已解决"
+        self.dev_teams: Set[str] = set()
+        self._load_dev_teams()
         
+    def _load_dev_teams(self):
+        """Load developer team members"""
+        try:
+            # Get Semi Dev Team
+            dev_team = self._get_team_members("Semi Dev Team")
+            self.dev_teams.update(dev_team)
+            
+            # Get Semi SPC Team
+            spc_team = self._get_team_members("Semi SPC Team")
+            self.dev_teams.update(spc_team)
+            
+            logger.info(f"Loaded {len(self.dev_teams)} developer team members")
+        except Exception as e:
+            logger.error(f"Failed to load developer teams: {e}")
+    
+    def _get_team_members(self, team_name: str) -> Set[str]:
+        """Get member names from a team/group"""
+        members = set()
+        try:
+            # Search for group by name
+            resp = requests.get(
+                f"{self.base_url}/groups.json",
+                headers=self.headers,
+                params={"name": team_name},
+                timeout=30
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                groups = data.get('groups', [])
+                if groups:
+                    group_id = groups[0]['id']
+                    # Get group details with members
+                    resp2 = requests.get(
+                        f"{self.base_url}/groups/{group_id}.json",
+                        headers=self.headers,
+                        params={"include": "users,memberships"},
+                        timeout=30
+                    )
+                    if resp2.status_code == 200:
+                        group_data = resp2.json()
+                        group = group_data.get('group', {})
+                        users = group.get('users', [])
+                        for user in users:
+                            members.add(user.get('name', ''))
+        except Exception as e:
+            logger.error(f"Failed to get team {team_name} members: {e}")
+        return members
+    
+    def is_developer(self, user_name: str) -> bool:
+        """Check if user is a developer"""
+        return user_name in self.dev_teams
+    
     def analyze_project(self, project_id: int) -> Dict:
         """Analyze developer/tester workload for a project"""
         logger.info(f"Analyzing dev/test workload for project {project_id}")
+        
+        # Reload teams to ensure fresh data
+        self._load_dev_teams()
         
         try:
             issues = self._get_resolved_issues(project_id)
@@ -55,92 +108,37 @@ class DevTestAnalyzer:
             
             issue_id = issue['id']
             
-            try:
-                journals = self._get_issue_journals(issue_id)
-                dev_name, tester_name = self._identify_dev_tester(journals, issue)
-                
-                if dev_name:
-                    if dev_name not in developers:
-                        developers[dev_name] = {"resolved_count": 0, "issues": []}
-                    developers[dev_name]["resolved_count"] += 1
-                    developers[dev_name]["issues"].append(issue_id)
-                
-                if tester_name:
-                    if tester_name not in testers:
-                        testers[tester_name] = {"test_count": 0, "issues": []}
-                    testers[tester_name]["test_count"] += 1
-                    testers[tester_name]["issues"].append(issue_id)
-                
-                if dev_name and tester_name:
-                    key = f"{dev_name} → {tester_name}"
-                    if key not in collaborations:
-                        collaborations[key] = {"count": 0, "issues": []}
-                    collaborations[key]["count"] += 1
-                    collaborations[key]["issues"].append(issue_id)
-                    
-            except Exception as e:
-                logger.warning(f"Failed to analyze issue {issue_id}: {e}")
-                continue
-        
-        return {"developers": developers, "testers": testers, "collaborations": collaborations, "total_issues": len(issues)}
-    
-    def _identify_dev_tester(self, journals: List[Dict], issue: Dict) -> Tuple[Optional[str], Optional[str]]:
-        """
-        Identify developer and tester from journals
-        
-        Returns:
-            (developer_name, tester_name)
-        """
-        if not journals:
-            # No journals, fallback to author and assignee
-            author = issue.get('author', {}).get('name', 'Unknown')
-            assignee = issue.get('assigned_to', {}).get('name', 'Unassigned') if issue.get('assigned_to') else 'Unassigned'
-            return author, assignee
-        
-        # Sort journals by creation time
-        sorted_journals = sorted(journals, key=lambda j: j.get('created_on', ''))
-        
-        developer = None
-        tester = None
-        
-        # Find the journal where status changed to "测试中" (developer)
-        # and the journal where status changed from "测试中" to "已解决" (tester)
-        for journal in sorted_journals:
-            user_name = journal.get('user', {}).get('name', 'Unknown')
-            details = journal.get('details', [])
+            # Get the person who resolved the issue
+            resolver = self._get_resolver(issue)
             
-            for detail in details:
-                if detail.get('name') == 'status_id':
-                    old_status = detail.get('old_value', '')
-                    new_status = detail.get('new_value', '')
-                    
-                    # Developer: changed status TO "测试中" (7)
-                    if new_status == str(self.status_testing_id):
-                        developer = user_name
-                    
-                    # Tester: changed status FROM "测试中" (7) TO "已解决" (3)
-                    if old_status == str(self.status_testing_id) and new_status == str(self.status_resolved_id):
-                        tester = user_name
+            # Classify as developer or tester based on team
+            if resolver and self.is_developer(resolver):
+                # Developer
+                if resolver not in developers:
+                    developers[resolver] = {"resolved_count": 0, "issues": []}
+                developers[resolver]["resolved_count"] += 1
+                developers[resolver]["issues"].append(issue_id)
+            elif resolver:
+                # Tester (Implementation team)
+                if resolver not in testers:
+                    testers[resolver] = {"test_count": 0, "issues": []}
+                testers[resolver]["test_count"] += 1
+                testers[resolver]["issues"].append(issue_id)
         
-        # Fallback if not found
-        if not developer:
-            # Use the person who assigned to tester as developer
-            for journal in sorted_journals:
-                details = journal.get('details', [])
-                for detail in details:
-                    if detail.get('name') == 'assigned_to_id':
-                        developer = journal.get('user', {}).get('name', 'Unknown')
-                        break
-                if developer:
-                    break
+        # Generate collaborations (developer → tester pairs per issue)
+        # For simplicity, we'll show top developers and testers
+        for dev in developers:
+            for tester in testers:
+                key = f"{dev} → {tester}"
+                collaborations[key] = {"count": 0, "issues": []}
         
-        if not developer:
-            developer = issue.get('author', {}).get('name', 'Unknown')
-        
-        if not tester:
-            tester = issue.get('assigned_to', {}).get('name', 'Unassigned') if issue.get('assigned_to') else 'Unassigned'
-        
-        return developer, tester
+        return {
+            "developers": developers, 
+            "testers": testers, 
+            "collaborations": collaborations, 
+            "total_issues": len(issues),
+            "dev_team_members": list(self.dev_teams)
+        }
     
     def _get_resolved_issues(self, project_id: int) -> List[Dict]:
         """Get all resolved issues for a project"""
@@ -165,6 +163,28 @@ class DevTestAnalyzer:
             offset += limit
         
         return all_issues
+    
+    def _get_resolver(self, issue: Dict) -> Optional[str]:
+        """Get the person who resolved the issue"""
+        journals = self._get_issue_journals(issue['id'])
+        if not journals:
+            return issue.get('author', {}).get('name', 'Unknown')
+        
+        # Sort journals by creation time
+        sorted_journals = sorted(journals, key=lambda j: j.get('created_on', ''))
+        
+        # Find the journal where status changed to resolved
+        for journal in sorted_journals:
+            details = journal.get('details', [])
+            for detail in details:
+                if detail.get('name') == 'status_id' and str(detail.get('new_value', '')) == str(self.status_resolved_id):
+                    return journal.get('user', {}).get('name', 'Unknown')
+        
+        # Fallback to last journal user
+        if sorted_journals:
+            return sorted_journals[-1].get('user', {}).get('name', 'Unknown')
+        
+        return issue.get('author', {}).get('name', 'Unknown')
     
     def _get_issue_journals(self, issue_id: int) -> List[Dict]:
         """Get journals for an issue"""
@@ -193,31 +213,23 @@ class DevTestAnalyzer:
         lines.append(f"📊 Project {project_id} - Dev/Test Workload Analysis")
         lines.append("=" * 70)
         lines.append(f"Total Resolved Issues: {total}")
+        lines.append(f"Developer Team Members: {len(result.get('dev_team_members', []))}")
         lines.append("")
         
-        lines.append("👨💻 Developers (changed status TO '测试中'):")
+        lines.append("👨💻 Developers (Semi Dev Team / Semi SPC Team):")
         lines.append("-" * 50)
         if result["developers"]:
-            for name, data in sorted(result["developers"].items(), key=lambda x: x[1]["resolved_count"], reverse=True)[:10]:
+            for name, data in sorted(result["developers"].items(), key=lambda x: x[1]["resolved_count"], reverse=True):
                 lines.append(f"{name:<25} | {data['resolved_count']:>3} issues")
         else:
             lines.append("No data")
         lines.append("")
         
-        lines.append("🧪 Testers (changed '测试中' TO '已解决'):")
+        lines.append("🧪 Testers/Implementation (Other teams):")
         lines.append("-" * 50)
         if result["testers"]:
-            for name, data in sorted(result["testers"].items(), key=lambda x: x[1]["test_count"], reverse=True)[:10]:
+            for name, data in sorted(result["testers"].items(), key=lambda x: x[1]["test_count"], reverse=True):
                 lines.append(f"{name:<25} | {data['test_count']:>3} issues")
-        else:
-            lines.append("No data")
-        lines.append("")
-        
-        lines.append("🤝 Collaborations:")
-        lines.append("-" * 50)
-        if result["collaborations"]:
-            for collab, data in sorted(result["collaborations"].items(), key=lambda x: x[1]["count"], reverse=True)[:10]:
-                lines.append(f"{collab:<35} | {data['count']:>3} issues")
         else:
             lines.append("No data")
         
@@ -252,9 +264,4 @@ def analyze_projects(project_ids: List[int]) -> Dict:
                 all_results["testers"][tester] = {"test_count": 0, "issues": []}
             all_results["testers"][tester]["test_count"] += data["test_count"]
             all_results["testers"][tester]["issues"].extend(data["issues"])
-        for collab, data in result.get("collaborations", {}).items():
-            if collab not in all_results["collaborations"]:
-                all_results["collaborations"][collab] = {"count": 0, "issues": []}
-            all_results["collaborations"][collab]["count"] += data["count"]
-            all_results["collaborations"][collab]["issues"].extend(data["issues"])
     return all_results
