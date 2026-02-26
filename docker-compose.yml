@@ -1,24 +1,66 @@
-version: "3.8"
-
 services:
+  # PostgreSQL 数据仓库
+  warehouse-db:
+    image: postgres:15-alpine
+    container_name: redmine-mcp-warehouse-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: redmine_warehouse
+      POSTGRES_PASSWORD: WarehouseP@ss2026
+      POSTGRES_DB: redmine_warehouse
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - warehouse_db_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U redmine_warehouse -d redmine_warehouse"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redmine MCP 服务器（增强版）
   redmine-mcp-server:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: redmine-mcp-server
-    network_mode: host
     entrypoint: ["/app/entrypoint.sh"]
     command: python -m uvicorn redmine_mcp_server.main:app --host 0.0.0.0 --port 8000
     env_file:
       - .env.docker
+    environment:
+      REDMINE_URL: ${REDMINE_URL}
+      REDMINE_API_KEY: ${REDMINE_API_KEY}
+      WAREHOUSE_DB_HOST: warehouse-db
+      WAREHOUSE_DB_PORT: "5432"
+      WAREHOUSE_DB_NAME: redmine_warehouse
+      WAREHOUSE_DB_USER: redmine_warehouse
+      WAREHOUSE_DB_PASSWORD: WarehouseP@ss2026
     volumes:
       - ./logs:/app/logs
       - ./data:/app/data
       - ./entrypoint.sh:/app/entrypoint.sh:ro
     restart: unless-stopped
+    depends_on:
+      warehouse-db:
+        condition: service_healthy
+    networks:
+      - mcp-network
+    ports:
+      - "8000:8000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+
+networks:
+  mcp-network:
+    driver: bridge
+
+volumes:
+  warehouse_db_data:
+    driver: local

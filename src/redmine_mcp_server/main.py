@@ -19,6 +19,7 @@ logging.basicConfig(
 )
 
 from .redmine_handler import mcp  # noqa: E402
+from . import redmine_scheduler as scheduler  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,18 @@ def main():
 
     logger.info(f"Starting with transport: {transport}")
 
+    # Initialize warehouse sync scheduler (only for HTTP transport)
+    if transport == "streamable-http":
+        sync_enabled = os.getenv("WAREHOUSE_SYNC_ENABLED", "true").lower() == "true"
+        if sync_enabled:
+            try:
+                logger.info("Initializing warehouse sync scheduler...")
+                scheduler.init_scheduler()
+                logger.info("Warehouse sync scheduler started")
+            except Exception as e:
+                logger.error(f"Failed to start sync scheduler: {e}")
+                logger.warning("Continuing without sync scheduler")
+
     if transport == "stdio":
         mcp.settings.port = 0
 
@@ -62,4 +75,16 @@ def main():
 
 
 if __name__ == "__main__":
+    import signal
+    import sys
+    
+    def signal_handler(sig, frame):
+        """处理关闭信号"""
+        logger.info("Shutting down...")
+        scheduler.shutdown_scheduler()
+        sys.exit(0)
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
     main()
