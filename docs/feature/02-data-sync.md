@@ -64,8 +64,10 @@ The Redmine MCP Server provides a comprehensive data synchronization system that
 **Configuration**:
 - **Trigger**: Manual via MCP tool
 - **Time Range**: From project creation date
-- **Issue Limit**: 500 per project (configurable)
+- **API Batch Size**: 100 issues per request (configurable, prevent Redmine overload)
 - **Status Filter**: `status_id=*` (all statuses including closed)
+
+**Note**: All issues are synced. The `SYNC_BATCH_SIZE` parameter controls how many issues are fetched per API request to prevent Redmine server overload.
 
 **When to Use**:
 - Initial setup
@@ -122,11 +124,15 @@ Run 3: 2024-01-15 to 2024-01-22 (Week 3)
 # Enable/disable sync
 WAREHOUSE_SYNC_ENABLED=true
 
-# Incremental sync interval (minutes)
+# Sync interval (minutes)
 WAREHOUSE_SYNC_INTERVAL_MINUTES=10
 
-# Max issues per sync (prevent timeout)
-MAX_ISSUES_PER_SYNC=500
+# API batch size - max issues per API request (prevent Redmine overload)
+# Adjust based on Redmine server performance:
+# - Default: 100 (safe for most servers)
+# - High load: 50 (reduce API pressure)
+# - Good performance: 200-500 (faster sync)
+SYNC_BATCH_SIZE=100
 
 # Auto-detected from subscriptions
 # WAREHOUSE_PROJECT_IDS=341,372
@@ -244,9 +250,11 @@ trigger_full_sync()
 | Progressive | `ceil(weekly_issues / 100)` |
 
 **Example** (Project with 500 issues):
-- Full sync: 5 API calls
+- Full sync: 5 API calls (fetches all, keeps latest 500)
 - Incremental sync: 1 API call
 - Progressive sync: 1-2 API calls per week
+
+**Note**: Large projects (>500 issues) require multiple sync runs to complete, but warehouse always keeps only the latest 500 issues.
 
 ---
 

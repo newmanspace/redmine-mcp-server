@@ -34,15 +34,15 @@ class RedmineSyncScheduler:
         self.scheduler = BlockingScheduler()
         self._sync_count = 0
         
-        # Max issues to sync per project (prevent timeout for large projects)
-        self.max_issues_per_sync = int(os.getenv("MAX_ISSUES_PER_SYNC", "500"))
+        # Batch size for API requests (prevent Redmine overload)
+        self.batch_size = int(os.getenv("SYNC_BATCH_SIZE", "100"))
         
         # Progressive sync: track last synced end date for each project
         self.project_sync_progress: Dict[int, datetime] = {}
         
         logger.info(f"RedmineSyncScheduler initialized (subscription-based)")
         logger.info(f"Sync interval: {self.sync_interval_minutes} minutes")
-        logger.info(f"Max issues per sync: {self.max_issues_per_sync}")
+        logger.info(f"API batch size: {self.batch_size} issues per request")
         logger.info(f"Progressive weekly sync: enabled")
     
     def _init_warehouse(self):
@@ -156,8 +156,8 @@ class RedmineSyncScheduler:
                 # Fallback: sync all issues (no date filter)
                 logger.info(f"Full sync for project {project_id}, syncing all issues (no creation date found)")
         
-        # Paginate with max limit
-        while len(all_issues) < self.max_issues_per_sync:
+        # Paginate - fetch all issues (no total limit)
+        while True:
             try:
                 resp = requests.get(api_url, headers=headers, params=params, timeout=30)
                 resp.raise_for_status()
@@ -165,16 +165,10 @@ class RedmineSyncScheduler:
                 issues = data.get('issues', [])
                 all_issues.extend(issues)
                 
-                if len(issues) < limit:
+                if len(issues) < self.batch_size:
                     break
                 
-                offset += limit
-                
-                # Check if approaching limit
-                if len(all_issues) >= self.max_issues_per_sync:
-                    logger.warning(f"Reached max issues limit ({self.max_issues_per_sync}) for project {project_id}")
-                    break
-                
+                offset += self.batch_size
                 logger.debug(f"Fetched {len(all_issues)} issues...")
                 
             except Exception as e:

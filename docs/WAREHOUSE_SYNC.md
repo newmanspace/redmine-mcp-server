@@ -259,9 +259,10 @@ trigger_full_sync(project_id=341)
 
 ### Issue Quantity Control
 
-**Full Sync Limits**:
+**Full Sync**:
 - **Time Range**: From project creation date (all historical data)
-- **Max Issues**: 500 per project (configurable via `MAX_ISSUES_PER_SYNC`)
+- **API Batch Size**: 100 issues per request (configurable via `SYNC_BATCH_SIZE`)
+- **Sync Strategy**: Fetch all issues in batches, no total limit
 
 **Incremental Sync Window**:
 - **Time Range**: Last 13 minutes (10-min interval + 3-min buffer)
