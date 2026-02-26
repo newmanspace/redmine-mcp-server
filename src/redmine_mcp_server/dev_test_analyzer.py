@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Dev/Test Workload Analyzer
+Dev/Test Workload Analyzer - CORRECTED VERSION
 
-Identifies:
-1. Developers: who changed issue status to "已解决" (status_id=3)
-2. Testers: who were assigned when status was changed to "已解决"
+Corrected Logic:
+- Developer: Person who changes issue status TO "测试中" (ready for testing)
+- Tester: Person who changes issue status FROM "测试中" TO "已解决" (testing completed)
+
+Status Flow:
+新建 (1) → 进行中 (2) → 代码审查 (10) → 测试中 (7) → 已解决 (3) → 已关闭 (5)
+                                    ↑              ↑
+                                开发人员        测试人员
 """
 
 import logging
 import requests
 import os
-from typing import Dict, List
+from typing import Dict, List, Optional, Tuple
 
 REDMINE_URL = os.getenv("REDMINE_URL")
 REDMINE_API_KEY = os.getenv("REDMINE_API_KEY")
@@ -23,7 +28,8 @@ class DevTestAnalyzer:
         self.base_url = REDMINE_URL
         self.api_key = REDMINE_API_KEY
         self.headers = {"X-Redmine-API-Key": self.api_key}
-        self.status_resolved_id = 3  # "已解决"
+        self.status_testing_id = 7    # "测试中"
+        self.status_resolved_id = 3   # "已解决"
         
     def analyze_project(self, project_id: int) -> Dict:
         """Analyze developer/tester workload for a project"""
@@ -48,36 +54,10 @@ class DevTestAnalyzer:
                 logger.info(f"Processing issue {i+1}/{len(issues)}")
             
             issue_id = issue['id']
-            current_assignee = issue.get('assigned_to', {}).get('name', 'Unassigned') if issue.get('assigned_to') else 'Unassigned'
-            current_author = issue.get('author', {}).get('name', 'Unknown') if issue.get('author') else 'Unknown'
             
             try:
                 journals = self._get_issue_journals(issue_id)
-                dev_name = None
-                tester_name = None
-                
-                for journal in journals:
-                    user_name = journal.get('user', {}).get('name', 'Unknown')
-                    details = journal.get('details', [])
-                    
-                    for detail in details:
-                        if detail.get('name') == 'status_id' and str(detail.get('new_value', '')) == str(self.status_resolved_id):
-                            dev_name = user_name
-                            
-                            assignee_changed = False
-                            for d in details:
-                                if d.get('name') == 'assigned_to_id':
-                                    tester_name = current_assignee
-                                    assignee_changed = True
-                                    break
-                            
-                            if not assignee_changed:
-                                tester_name = current_assignee
-                            break
-                
-                if not dev_name:
-                    dev_name = current_author
-                    tester_name = current_assignee
+                dev_name, tester_name = self._identify_dev_tester(journals, issue)
                 
                 if dev_name:
                     if dev_name not in developers:
@@ -103,6 +83,64 @@ class DevTestAnalyzer:
                 continue
         
         return {"developers": developers, "testers": testers, "collaborations": collaborations, "total_issues": len(issues)}
+    
+    def _identify_dev_tester(self, journals: List[Dict], issue: Dict) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Identify developer and tester from journals
+        
+        Returns:
+            (developer_name, tester_name)
+        """
+        if not journals:
+            # No journals, fallback to author and assignee
+            author = issue.get('author', {}).get('name', 'Unknown')
+            assignee = issue.get('assigned_to', {}).get('name', 'Unassigned') if issue.get('assigned_to') else 'Unassigned'
+            return author, assignee
+        
+        # Sort journals by creation time
+        sorted_journals = sorted(journals, key=lambda j: j.get('created_on', ''))
+        
+        developer = None
+        tester = None
+        
+        # Find the journal where status changed to "测试中" (developer)
+        # and the journal where status changed from "测试中" to "已解决" (tester)
+        for journal in sorted_journals:
+            user_name = journal.get('user', {}).get('name', 'Unknown')
+            details = journal.get('details', [])
+            
+            for detail in details:
+                if detail.get('name') == 'status_id':
+                    old_status = detail.get('old_value', '')
+                    new_status = detail.get('new_value', '')
+                    
+                    # Developer: changed status TO "测试中" (7)
+                    if new_status == str(self.status_testing_id):
+                        developer = user_name
+                    
+                    # Tester: changed status FROM "测试中" (7) TO "已解决" (3)
+                    if old_status == str(self.status_testing_id) and new_status == str(self.status_resolved_id):
+                        tester = user_name
+        
+        # Fallback if not found
+        if not developer:
+            # Use the person who assigned to tester as developer
+            for journal in sorted_journals:
+                details = journal.get('details', [])
+                for detail in details:
+                    if detail.get('name') == 'assigned_to_id':
+                        developer = journal.get('user', {}).get('name', 'Unknown')
+                        break
+                if developer:
+                    break
+        
+        if not developer:
+            developer = issue.get('author', {}).get('name', 'Unknown')
+        
+        if not tester:
+            tester = issue.get('assigned_to', {}).get('name', 'Unassigned') if issue.get('assigned_to') else 'Unassigned'
+        
+        return developer, tester
     
     def _get_resolved_issues(self, project_id: int) -> List[Dict]:
         """Get all resolved issues for a project"""
@@ -157,7 +195,7 @@ class DevTestAnalyzer:
         lines.append(f"Total Resolved Issues: {total}")
         lines.append("")
         
-        lines.append("👨💻 Developers (resolved issues):")
+        lines.append("👨💻 Developers (changed status TO '测试中'):")
         lines.append("-" * 50)
         if result["developers"]:
             for name, data in sorted(result["developers"].items(), key=lambda x: x[1]["resolved_count"], reverse=True)[:10]:
@@ -166,7 +204,7 @@ class DevTestAnalyzer:
             lines.append("No data")
         lines.append("")
         
-        lines.append("🧪 Testers (assigned to verify):")
+        lines.append("🧪 Testers (changed '测试中' TO '已解决'):")
         lines.append("-" * 50)
         if result["testers"]:
             for name, data in sorted(result["testers"].items(), key=lambda x: x[1]["test_count"], reverse=True)[:10]:
