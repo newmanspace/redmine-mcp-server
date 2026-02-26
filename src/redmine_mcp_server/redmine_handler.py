@@ -2251,6 +2251,125 @@ async def get_sync_progress() -> Dict[str, Any]:
     }
 
 
+@mcp.tool()
+async def analyze_dev_tester_workload(
+    project_id: Optional[int] = None
+) -> Dict[str, Any]:
+    """
+    Analyze developer and tester workload based on issue resolution flow
+    
+    Developer: Person who changes status to "已解决"
+    Tester: Person assigned when status changes to "已解决"
+    
+    Args:
+        project_id: Specific project ID (optional, analyze all subscribed if None)
+    
+    Returns:
+        Analysis report
+    """
+    from .dev_test_analyzer import DevTestAnalyzer, analyze_project, analyze_projects
+    from .redmine_scheduler import get_scheduler
+    
+    try:
+        if project_id:
+            # Analyze single project
+            analysis = analyze_project(project_id)
+        else:
+            # Analyze all subscribed projects
+            scheduler = get_scheduler()
+            if not scheduler:
+                return {
+                    "success": False,
+                    "error": "Scheduler not initialized"
+                }
+            
+            project_ids = scheduler.project_ids
+            analysis = analyze_projects(project_ids)
+        
+        # Generate report
+        analyzer = DevTestAnalyzer()
+        report = analyzer.generate_report(analysis)
+        
+        return {
+            "success": True,
+            "analysis": analysis,
+            "report": report
+        }
+    
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Failed to analyze dev/tester workload"
+        }
+
+
+@mcp.tool()
+async def backfill_historical_data(
+    project_id: Optional[int] = None,
+    from_date: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Backfill historical daily snapshots from Redmine journals
+    
+    Args:
+        project_id: Specific project ID (optional, backfill all if None)
+        from_date: Start date in YYYY-MM-DD format (optional)
+    
+    Returns:
+        Backfill result
+    """
+    from .backfill_sync import BackfillSync, backfill_all_projects
+    from .redmine_scheduler import get_scheduler
+    
+    try:
+        if project_id:
+            # Backfill single project
+            sync = BackfillSync()
+            start_date = datetime.strptime(from_date, '%Y-%m-%d') if from_date else None
+            sync.backfill_project(project_id, start_date)
+            sync.close()
+            
+            return {
+                "success": True,
+                "message": f"Backfill completed for project {project_id}",
+                "project_id": project_id
+            }
+        else:
+            # Backfill all subscribed projects
+            scheduler = get_scheduler()
+            if not scheduler:
+                return {
+                    "success": False,
+                    "error": "Scheduler not initialized"
+                }
+            
+            project_ids = scheduler.project_ids
+            start_date = datetime.strptime(from_date, '%Y-%m-%d') if from_date else None
+            
+            # Run in background to avoid timeout
+            import threading
+            def run_backfill():
+                backfill_all_projects(project_ids)
+            
+            thread = threading.Thread(target=run_backfill, daemon=True)
+            thread.start()
+            
+            return {
+                "success": True,
+                "message": f"Backfill started for {len(project_ids)} projects",
+                "projects": project_ids,
+                "note": "Backfill running in background, check logs for progress"
+            }
+    
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Failed to backfill historical data"
+        }
+
+
 if __name__ == "__main__":
     if not redmine:
         logger.warning(
