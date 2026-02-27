@@ -1,0 +1,47 @@
+[
+  {
+    "id": 1,
+    "subject": "系统登录失败",
+    "status": {"id": 1, "name": "新建"},
+    "priority": {"id": 1, "name": "立刻"},
+    "assigned_to": {"id": 1, "name": "张三"},
+    "created_on": "2026-02-20T10:00:00Z",
+    "updated_on": "2026-02-27T09:00:00Z"
+  },
+  {
+    "id": 2,
+    "subject": "数据同步异常",
+    "status": {"id": 2, "name": "进行中"},
+    "priority": {"id": 2, "name": "紧急"},
+    "assigned_to": {"id": 2, "name": "李四"},
+    "created_on": "2026-02-21T11:00:00Z",
+    "updated_on": "2026-02-27T10:00:00Z"
+  },
+  {
+    "id": 3,
+    "subject": "报表导出功能优化",
+    "status": {"id": 2, "name": "进行中"},
+    "priority": {"id": 3, "name": "高"},
+    "assigned_to": {"id": 3, "name": "王五"},
+    "created_on": "2026-02-22T14:00:00Z",
+    "updated_on": "2026-02-26T16:00:00Z"
+  },
+  {
+    "id": 4,
+    "subject": "用户权限配置",
+    "status": {"id": 3, "name": "已解决"},
+    "priority": {"id": 4, "name": "普通"},
+    "assigned_to": {"id": 1, "name": "张三"},
+    "created_on": "2026-02-23T09:00:00Z",
+    "closed_on": "2026-02-27T08:00:00Z"
+  },
+  {
+    "id": 5,
+    "subject": "界面 UI 改进",
+    "status": {"id": 4, "name": "已关闭"},
+    "priority": {"id": 5, "name": "低"},
+    "assigned_to": {"id": 4, "name": "赵六"},
+    "created_on": "2026-02-24T15:00:00Z",
+    "closed_on": "2026-02-26T17:00:00Z"
+  }
+]

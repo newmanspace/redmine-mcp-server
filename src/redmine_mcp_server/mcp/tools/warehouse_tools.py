@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Redmine MCP Tools
+Redmine MCP Tools - Subscription Management
 """
 
 from ..server import mcp, redmine, logger
@@ -13,49 +13,64 @@ async def unsubscribe_project(
 ) -> Dict[str, Any]:
     """
     取消项目订阅
-    
+
     Args:
         project_id: 项目 ID (可选，不传则取消所有订阅)
-    
+
     Returns:
         取消结果
     """
-    from .subscriptions import get_subscription_manager
-    
+    from ..dws.services.subscription_service import get_subscription_manager
+
     user_id = "default_user"
     manager = get_subscription_manager()
+
+    result = manager.unsubscribe(user_id=user_id, project_id=project_id)
     
-    return manager.unsubscribe(user_id=user_id, project_id=project_id)
+    # Close warehouse connection
+    manager.close()
+    
+    return result
 
 
 @mcp.tool()
 async def list_my_subscriptions() -> List[Dict[str, Any]]:
     """
     查看我的订阅列表
-    
+
     Returns:
         订阅列表
     """
-    from .subscriptions import get_subscription_manager
-    
+    from ..dws.services.subscription_service import get_subscription_manager
+
     user_id = "default_user"
     manager = get_subscription_manager()
+
+    result = manager.get_user_subscriptions(user_id)
     
-    return manager.get_user_subscriptions(user_id)
+    # Close warehouse connection
+    manager.close()
+    
+    return result
 
 
 @mcp.tool()
 async def get_subscription_stats() -> Dict[str, Any]:
     """
     获取订阅统计信息
-    
+
     Returns:
         统计数据
     """
-    from .subscriptions import get_subscription_manager
-    
+    from ..dws.services.subscription_service import get_subscription_manager
+
     manager = get_subscription_manager()
-    return manager.get_stats()
+    result = manager.get_stats()
+    
+    # Close warehouse connection
+    manager.close()
+    
+    return result
 
 
 @mcp.tool()

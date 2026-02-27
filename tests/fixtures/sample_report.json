@@ -1,0 +1,67 @@
+{
+  "type": "daily",
+  "project_id": 341,
+  "date": "2026-02-27",
+  "stats": {
+    "total_issues": 540,
+    "open_issues": 162,
+    "closed_issues": 378,
+    "today_new": 9,
+    "today_closed": 8,
+    "by_status": {
+      "新建": 15,
+      "进行中": 20,
+      "已解决": 8,
+      "已关闭": 378
+    },
+    "by_priority": {
+      "立刻": 2,
+      "紧急": 5,
+      "高": 12,
+      "普通": 504,
+      "低": 17
+    },
+    "high_priority_issues": [
+      {
+        "id": 1,
+        "subject": "系统登录失败",
+        "priority": {"name": "立刻"},
+        "status": {"name": "新建"},
+        "assigned_to": {"name": "张三"}
+      },
+      {
+        "id": 2,
+        "subject": "数据同步异常",
+        "priority": {"name": "紧急"},
+        "status": {"name": "进行中"},
+        "assigned_to": {"name": "李四"}
+      }
+    ],
+    "top_assignees": [
+      {"name": "张三", "count": 25},
+      {"name": "李四", "count": 20},
+      {"name": "王五", "count": 18}
+    ]
+  },
+  "trend_analysis": {
+    "period_days": 7,
+    "trend_direction": "improving",
+    "summary": {
+      "total_new": 45,
+      "total_closed": 38,
+      "avg_new_per_period": 6.43,
+      "avg_closed_per_period": 5.43,
+      "change_rate_percent": 15.5,
+      "trend": "up"
+    },
+    "daily_stats": [
+      {"date": "2026-02-21", "new": 5, "closed": 4, "total_open": 160, "total_closed": 370},
+      {"date": "2026-02-22", "new": 6, "closed": 5, "total_open": 161, "total_closed": 371},
+      {"date": "2026-02-23", "new": 7, "closed": 6, "total_open": 162, "total_closed": 372},
+      {"date": "2026-02-24", "new": 8, "closed": 7, "total_open": 163, "total_closed": 373},
+      {"date": "2026-02-25", "new": 6, "closed": 5, "total_open": 164, "total_closed": 374},
+      {"date": "2026-02-26", "new": 5, "closed": 4, "total_open": 165, "total_closed": 375},
+      {"date": "2026-02-27", "new": 8, "closed": 7, "total_open": 162, "total_closed": 378}
+    ]
+  }
+}

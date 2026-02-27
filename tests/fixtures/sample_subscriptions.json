@@ -1,0 +1,43 @@
+[
+  {
+    "subscription_id": "user1:341:email",
+    "user_id": "user1",
+    "project_id": 341,
+    "channel": "email",
+    "channel_id": "user1@example.com",
+    "report_type": "daily",
+    "report_level": "detailed",
+    "send_time": "09:00",
+    "include_trend": true,
+    "trend_period_days": 7,
+    "enabled": true
+  },
+  {
+    "subscription_id": "user2:341:email",
+    "user_id": "user2",
+    "project_id": 341,
+    "channel": "email",
+    "channel_id": "user2@example.com",
+    "report_type": "weekly",
+    "report_level": "comprehensive",
+    "send_day_of_week": "Mon",
+    "send_time": "09:00",
+    "include_trend": true,
+    "trend_period_days": 30,
+    "enabled": true
+  },
+  {
+    "subscription_id": "manager:356:email",
+    "user_id": "manager",
+    "project_id": 356,
+    "channel": "email",
+    "channel_id": "manager@example.com",
+    "report_type": "monthly",
+    "report_level": "comprehensive",
+    "send_day_of_month": 1,
+    "send_time": "10:00",
+    "include_trend": true,
+    "trend_period_days": 180,
+    "enabled": true
+  }
+]

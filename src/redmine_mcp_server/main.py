@@ -16,13 +16,18 @@ logging.basicConfig(
 
 # Import MCP from new location
 from .mcp.server import mcp  # noqa: E402
-# Scheduler import removed for cleaner startup  # noqa: E402
-from .dws.services import subscription_service
+# Scheduler imports
 try:
-    from .scheduler.tasks import init_scheduler, shutdown_scheduler
+    from .scheduler.tasks import init_scheduler as init_sync_scheduler, shutdown_scheduler as shutdown_sync_scheduler
 except ImportError:
-    init_scheduler = None
-    shutdown_scheduler = None  # noqa: E402
+    init_sync_scheduler = None
+    shutdown_sync_scheduler = None  # noqa: E402
+
+try:
+    from .scheduler.subscription_scheduler import init_subscription_scheduler, shutdown_subscription_scheduler
+except ImportError:
+    init_subscription_scheduler = None
+    shutdown_subscription_scheduler = None  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -54,20 +59,31 @@ def main():
 
     logger.info(f"Starting with transport: {transport}")
 
-    # Initialize warehouse sync scheduler (only for HTTP transport)
+    # Initialize schedulers (only for HTTP transport)
     if transport == "streamable-http":
-        # Initialize subscription manager
+        # 1. Initialize subscription manager
         try:
+            from .dws.services import subscription_service
             subscription_service.init_subscription_manager()
             logger.info("Subscription manager initialized")
         except Exception as e:
             logger.error(f"Failed to initialize subscription manager: {e}")
-        
+
+        # 2. Initialize subscription scheduler (for sending reports)
+        if init_subscription_scheduler:
+            try:
+                init_subscription_scheduler()
+                logger.info("Subscription scheduler started (auto-send reports)")
+            except Exception as e:
+                logger.error(f"Failed to start subscription scheduler: {e}")
+                logger.warning("Continuing without subscription scheduler")
+
+        # 3. Initialize warehouse sync scheduler
         sync_enabled = os.getenv("WAREHOUSE_SYNC_ENABLED", "true").lower() == "true"
-        if sync_enabled:
+        if sync_enabled and init_sync_scheduler:
             try:
                 logger.info("Initializing warehouse sync scheduler...")
-                init_scheduler()
+                init_sync_scheduler()
                 logger.info("Warehouse sync scheduler started")
             except Exception as e:
                 logger.error(f"Failed to start sync scheduler: {e}")
@@ -80,14 +96,20 @@ def main():
 
 if __name__ == "__main__":
     import signal
-    
+
     def signal_handler(sig, frame):
         """Handle shutdown signal"""
         logger.info("Shutting down...")
-        shutdown_scheduler()
+        
+        # Shutdown schedulers
+        if shutdown_subscription_scheduler:
+            shutdown_subscription_scheduler()
+        if shutdown_sync_scheduler:
+            shutdown_sync_scheduler()
+        
         sys.exit(0)
-    
+
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
-    
+
     main()

@@ -42,6 +42,7 @@ from .tools import (
     attachment_tools,
     search_tools,
     subscription_tools,
+    subscription_push_tools,  # New: Subscription push tools
     warehouse_tools,
     analytics_tools,
     contributor_tools,
