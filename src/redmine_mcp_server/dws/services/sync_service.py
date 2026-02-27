@@ -227,7 +227,7 @@ class BackfillSync:
                     with conn.cursor() as cur:
                         for state in snapshots:
                             cur.execute("""
-                                INSERT INTO warehouse.issue_daily_snapshot (
+                                INSERT INTO warehouse.dwd_issue_daily_snapshot (
                                     issue_id, project_id, snapshot_date,
                                     subject, status_id, status_name,
                                     priority_id, priority_name,

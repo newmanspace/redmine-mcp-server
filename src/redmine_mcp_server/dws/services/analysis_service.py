@@ -14,11 +14,52 @@ import logging
 import requests
 import os
 from typing import Dict, List, Set, Optional, Tuple
+from datetime import datetime
 
 REDMINE_URL = os.getenv("REDMINE_URL")
 REDMINE_API_KEY = os.getenv("REDMINE_API_KEY")
 
 logger = logging.getLogger(__name__)
+
+# Role category mapping based on Redmine role names
+ROLE_CATEGORY_MAP = {
+    # Manager roles
+    'project manager': 'manager',
+    'manager': 'manager',
+    '负责人': 'manager',
+    '项目经理': 'manager',
+    
+    # Implementation roles
+    'implementation': 'implementation',
+    '实施': 'implementation',
+    '实施人员': 'implementation',
+    
+    # Developer roles
+    'developer': 'developer',
+    '开发': 'developer',
+    '开发人员': 'developer',
+    'engineer': 'developer',
+    
+    # Tester roles
+    'tester': 'tester',
+    '测试': 'tester',
+    '测试人员': 'tester',
+    'qa': 'tester',
+    
+    # Other roles
+    'viewer': 'other',
+    '报告者': 'other',
+    'reporter': 'other',
+}
+
+# Role priority (lower is higher priority)
+ROLE_PRIORITY = {
+    'manager': 1,
+    'implementation': 2,
+    'developer': 3,
+    'tester': 4,
+    'other': 5,
+}
 
 class DevTestAnalyzer:
     def __init__(self):
@@ -239,6 +280,191 @@ class DevTestAnalyzer:
     def generate_report(self, analysis: Dict) -> str:
         """Generate formatted report"""
         return self.format_report(analysis, 0)
+    
+    def _get_role_category(self, role_name: str) -> str:
+        """Get role category from role name"""
+        if not role_name:
+            return 'other'
+        
+        role_lower = role_name.lower()
+        for key, category in ROLE_CATEGORY_MAP.items():
+            if key in role_lower:
+                return category
+        return 'other'
+    
+    def _get_role_priority(self, category: str) -> int:
+        """Get role priority (lower is higher priority)"""
+        return ROLE_PRIORITY.get(category, 5)
+    
+    def extract_contributors_from_journals(self, journals: List[Dict], issue_id: int, 
+                                           project_id: int) -> List[Dict]:
+        """
+        Extract contributors from issue journals
+        
+        Args:
+            journals: List of journal entries
+            issue_id: Issue ID
+            project_id: Project ID
+        
+        Returns:
+            List of contributor dictionaries
+        """
+        if not journals:
+            return []
+        
+        contributors = {}  # user_id -> contributor data
+        
+        for journal in journals:
+            user = journal.get('user', {})
+            user_id = user.get('id')
+            user_name = user.get('name', 'Unknown')
+            
+            if not user_id:
+                continue
+            
+            if user_id not in contributors:
+                contributors[user_id] = {
+                    'user_id': user_id,
+                    'user_name': user_name,
+                    'journal_count': 0,
+                    'status_change_count': 0,
+                    'note_count': 0,
+                    'assigned_change_count': 0,
+                    'first_contribution': journal.get('created_on'),
+                    'last_contribution': journal.get('created_on'),
+                    'highest_role_id': None,
+                    'highest_role_name': None,
+                    'role_category': None,
+                    'role_priority': 999,
+                }
+            
+            contrib = contributors[user_id]
+            contrib['journal_count'] += 1
+            contrib['last_contribution'] = journal.get('created_on', contrib['last_contribution'])
+            
+            # Analyze journal details
+            details = journal.get('details', [])
+            for detail in details:
+                prop_name = detail.get('name', '')
+                
+                if prop_name == 'status_id':
+                    contrib['status_change_count'] += 1
+                elif prop_name == 'notes' and detail.get('new_value'):
+                    contrib['note_count'] += 1
+                elif prop_name == 'assigned_to_id':
+                    contrib['assigned_change_count'] += 1
+        
+        # Get user roles from project
+        project_roles = self.get_project_member_roles(project_id)
+        user_role_map = {r['user_id']: r for r in project_roles}
+        
+        # Enrich contributors with role information
+        result = []
+        for user_id, contrib in contributors.items():
+            role_info = user_role_map.get(user_id, {})
+            
+            # Update with role info if available
+            if role_info:
+                contrib['highest_role_id'] = role_info.get('highest_role_id')
+                contrib['highest_role_name'] = role_info.get('highest_role_name')
+                contrib['role_category'] = role_info.get('role_category')
+            else:
+                # Fallback: classify based on team membership
+                if self.is_developer(contrib['user_name']):
+                    contrib['role_category'] = 'developer'
+                else:
+                    contrib['role_category'] = 'implementation'
+            
+            result.append(contrib)
+        
+        return result
+    
+    def get_project_member_roles(self, project_id: int) -> List[Dict]:
+        """
+        Get all member roles for a project
+        
+        Args:
+            project_id: Project ID
+        
+        Returns:
+            List of user role dictionaries
+        """
+        roles = []
+        seen_users = {}  # user_id -> role data
+        
+        try:
+            # Get project details with memberships
+            resp = requests.get(
+                f"{self.base_url}/projects/{project_id}.json",
+                headers=self.headers,
+                params={"include": "memberships"},
+                timeout=30
+            )
+            
+            if resp.status_code != 200:
+                logger.warning(f"Failed to get project {project_id} memberships: {resp.status_code}")
+                return roles
+            
+            data = resp.json()
+            project = data.get('project', {})
+            memberships = project.get('memberships', [])
+            
+            for membership in memberships:
+                user = membership.get('user', {})
+                user_id = user.get('id')
+                user_name = user.get('name', 'Unknown')
+                
+                if not user_id:
+                    continue
+                
+                # Get all roles for this user
+                member_roles = membership.get('roles', [])
+                role_ids = [r.get('id') for r in member_roles]
+                role_names = [r.get('name') for r in member_roles]
+                
+                # Determine highest priority role
+                highest_role = None
+                highest_priority = 999
+                highest_category = 'other'
+                
+                for role in member_roles:
+                    role_name = role.get('name', '')
+                    category = self._get_role_category(role_name)
+                    priority = self._get_role_priority(category)
+                    
+                    if priority < highest_priority:
+                        highest_priority = priority
+                        highest_role = role
+                        highest_category = category
+                
+                # Update or create user entry
+                if user_id in seen_users:
+                    existing = seen_users[user_id]
+                    if highest_priority < existing.get('role_priority', 999):
+                        existing['highest_role_id'] = highest_role.get('id') if highest_role else None
+                        existing['highest_role_name'] = highest_role.get('name') if highest_role else None
+                        existing['role_category'] = highest_category
+                        existing['role_priority'] = highest_priority
+                        existing['all_role_ids'] = ','.join(map(str, role_ids))
+                else:
+                    seen_users[user_id] = {
+                        'user_id': user_id,
+                        'user_name': user_name,
+                        'highest_role_id': highest_role.get('id') if highest_role else None,
+                        'highest_role_name': highest_role.get('name') if highest_role else None,
+                        'role_category': highest_category,
+                        'role_priority': highest_priority,
+                        'all_role_ids': ','.join(map(str, role_ids)),
+                        'is_direct_member': True,
+                    }
+            
+            roles = list(seen_users.values())
+            logger.info(f"Retrieved {len(roles)} member roles for project {project_id}")
+            
+        except Exception as e:
+            logger.error(f"Failed to get project member roles: {e}")
+        
+        return roles
 
 
 # Global instance
