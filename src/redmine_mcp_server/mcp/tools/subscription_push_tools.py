@@ -3,7 +3,7 @@
 """
 MCP Tools - Subscription Push
 
-手动触发订阅报告推送
+Manually trigger subscription report push
 """
 
 from ..server import mcp, logger
@@ -16,14 +16,14 @@ async def push_subscription_reports(
     project_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """
-    手动触发订阅报告推送
+    Manually trigger subscription report push
 
     Args:
-        report_type: 报告类型 (daily/weekly/monthly)
-        project_id: 项目 ID (可选，不传则推送所有订阅的项目)
+        report_type: Report type (daily/weekly/monthly)
+        project_id: Project ID (optional, push all subscribed projects if not provided)
 
     Returns:
-        推送结果统计
+        Push statistics
     """
     try:
         from ..dws.services.subscription_push_service import SubscriptionPushService
@@ -90,17 +90,17 @@ async def send_project_report_email(
     include_trend: bool = True
 ) -> Dict[str, Any]:
     """
-    发送项目报告邮件（一次性，不创建订阅）
+    Send project report email (one-time, without creating subscription)
 
     Args:
-        project_id: 项目 ID
-        to_email: 收件人邮箱
-        report_type: 报告类型 (daily/weekly/monthly)
-        report_level: 报告级别 (brief/detailed/comprehensive)
-        include_trend: 是否包含趋势分析
+        project_id: Project ID
+        to_email: Recipient email
+        report_type: Report type (daily/weekly/monthly)
+        report_level: Report level (brief/detailed/comprehensive)
+        include_trend: Include trend analysis
 
     Returns:
-        发送结果
+        Send result
     """
     try:
         from ..dws.services.subscription_push_service import SubscriptionPushService
@@ -152,10 +152,10 @@ async def send_project_report_email(
 @mcp.tool()
 async def get_subscription_scheduler_status() -> Dict[str, Any]:
     """
-    获取订阅调度器状态
+    Get subscription scheduler status
 
     Returns:
-        调度器状态信息
+        Scheduler status information
     """
     try:
         from ..scheduler.subscription_scheduler import get_subscription_scheduler
