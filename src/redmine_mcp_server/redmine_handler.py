@@ -50,7 +50,7 @@ from requests.exceptions import (
     SSLError as RequestsSSLError,
 )
 from mcp.server.fastmcp import FastMCP
-from .file_manager import AttachmentFileManager
+from .core.file_manager import AttachmentFileManager
 from .ads_reports import register_ads_tools
 
 # Configure logging
