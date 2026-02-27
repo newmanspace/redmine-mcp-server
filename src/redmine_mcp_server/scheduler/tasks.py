@@ -341,3 +341,44 @@ def shutdown_scheduler():
         _scheduler.scheduler.shutdown()
         logger.info("Scheduler shutdown complete")
     _scheduler = None
+
+
+# ========== ODS Sync Integration ==========
+
+def sync_ods_layer_incremental(project_ids: Optional[List[int]] = None) -> Dict[str, Any]:
+    """
+    Sync ODS layer incrementally (last 15 minutes)
+    
+    Args:
+        project_ids: Projects to sync (all subscribed if None)
+    
+    Returns:
+        Sync results
+    """
+    try:
+        from ..dws.services.ods_sync_service import sync_ods_incremental
+        logger.info("Starting ODS incremental sync...")
+        return sync_ods_incremental(project_ids)
+    except Exception as e:
+        logger.error(f"ODS incremental sync failed: {e}")
+        return {"error": str(e)}
+
+
+def sync_ods_layer_full(project_ids: Optional[List[int]] = None, from_date: Optional[datetime] = None) -> Dict[str, Any]:
+    """
+    Sync ODS layer fully (force refresh)
+    
+    Args:
+        project_ids: Projects to sync (all subscribed if None)
+        from_date: Optional start date
+    
+    Returns:
+        Sync results
+    """
+    try:
+        from ..dws.services.ods_sync_service import sync_ods_full
+        logger.info(f"Starting ODS full sync...")
+        return sync_ods_full(project_ids, from_date)
+    except Exception as e:
+        logger.error(f"ODS full sync failed: {e}")
+        return {"error": str(e)}

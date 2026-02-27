@@ -46,6 +46,7 @@ from .tools import (
     analytics_tools,
     contributor_tools,
     ads_tools,
+    ods_sync_tools,
 )
 
 logger.info("All tool modules loaded")
