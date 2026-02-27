@@ -49,6 +49,8 @@ from requests.exceptions import (
     Timeout as RequestsTimeout,
     SSLError as RequestsSSLError,
 )
+from importlib.metadata import version, PackageNotFoundError
+
 from mcp.server.fastmcp import FastMCP
 from .core.file_manager import AttachmentFileManager
 from .ads_reports import register_ads_tools
@@ -2659,6 +2661,28 @@ async def trigger_contributor_sync(
     except Exception as e:
         logger.error(f"Failed to trigger contributor sync: {e}")
         return {"error": f"Failed to trigger contributor sync: {str(e)}"}
+
+
+def get_version() -> str:
+    """Get server version"""
+    try:
+        return version("redmine-mcp-server")
+    except PackageNotFoundError:
+        return "dev"
+
+
+def get_health_status() -> Dict[str, Any]:
+    """
+    Get health check status
+    
+    Returns:
+        Health status with version and timestamp
+    """
+    return {
+        "status": "healthy",
+        "version": get_version(),
+        "timestamp": datetime.now().isoformat()
+    }
 
 
 if __name__ == "__main__":

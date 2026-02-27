@@ -57,9 +57,10 @@ RUN mkdir -p /app/logs /app/data && \
 # Switch to non-root user
 USER appuser
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8000/mcp/health || exit 1
+# Health check (note: /health endpoint not available in MCP streamable-http mode)
+# Use container status or MCP endpoint for health monitoring instead
+# HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+#     CMD curl -f http://localhost:8000/health || exit 1
 
 # Expose port
 EXPOSE 8000

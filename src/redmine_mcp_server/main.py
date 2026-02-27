@@ -1,11 +1,7 @@
 import logging
 import os
 import sys
-from datetime import datetime
 from importlib.metadata import version, PackageNotFoundError
-
-from starlette.routing import Route, Router
-from starlette.responses import JSONResponse
 
 """
 Main entry point for the MCP Redmine server.
@@ -48,21 +44,6 @@ mcp.settings.stateless_http = True
 
 # Export the Starlette/FastAPI app for testing and external use
 app = mcp.streamable_http_app()
-
-# Add health check endpoint at /mcp/health
-from starlette.routing import Route
-from starlette.responses import JSONResponse
-
-async def health_check(request):
-    """Health check endpoint at /mcp/health"""
-    return JSONResponse({
-        "status": "healthy",
-        "version": get_version(),
-        "timestamp": datetime.now().isoformat()
-    })
-
-# Insert the route at the beginning so it takes precedence
-app.router.routes.insert(0, Route("/health", health_check, methods=["GET"]))
 
 def main():
     """Main entry point for the console script."""
