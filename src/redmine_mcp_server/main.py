@@ -49,37 +49,20 @@ mcp.settings.stateless_http = True
 # Export the Starlette/FastAPI app for testing and external use
 app = mcp.streamable_http_app()
 
-# Create a new Starlette app with health check and root endpoints
-from starlette.applications import Starlette
+# Add health check endpoint at /mcp/health
 from starlette.routing import Route
+from starlette.responses import JSONResponse
 
-# Define endpoints
 async def health_check(request):
-    """Health check endpoint for Docker health checks"""
+    """Health check endpoint at /mcp/health"""
     return JSONResponse({
         "status": "healthy",
         "version": get_version(),
         "timestamp": datetime.now().isoformat()
     })
 
-async def root_endpoint(request):
-    """Root endpoint with server info"""
-    return JSONResponse({
-        "name": "Redmine MCP Server",
-        "version": get_version(),
-        "status": "running"
-    })
-
-# Create new app with health check first
-from starlette.routing import Mount
-app = Starlette(
-    debug=False,
-    routes=[
-        Route("/health", health_check, methods=["GET"]),
-        Route("/", root_endpoint, methods=["GET"]),
-        Mount("/mcp", app=app),  # Mount the MCP app
-    ]
-)
+# Insert the route at the beginning so it takes precedence
+app.router.routes.insert(0, Route("/health", health_check, methods=["GET"]))
 
 def main():
     """Main entry point for the console script."""
