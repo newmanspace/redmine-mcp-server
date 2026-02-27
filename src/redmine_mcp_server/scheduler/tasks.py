@@ -13,7 +13,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 import requests
 
 from ..dws.repository import DataWarehouse
-from ..dws.services.redmine_handler import REDMINE_URL, REDMINE_API_KEY, logger
+from ..redmine_handler import REDMINE_URL, REDMINE_API_KEY, logger
 
 
 class RedmineSyncScheduler:
