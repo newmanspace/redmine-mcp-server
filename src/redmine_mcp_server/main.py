@@ -16,8 +16,13 @@ logging.basicConfig(
 
 # Import MCP from new location
 from .mcp.server import mcp  # noqa: E402
-from . import scheduler as scheduler_module  # noqa: E402
-from .dws.services import subscription_service  # noqa: E402
+# Scheduler import removed for cleaner startup  # noqa: E402
+from .dws.services import subscription_service
+try:
+    from .scheduler.tasks import init_scheduler, shutdown_scheduler
+except ImportError:
+    init_scheduler = None
+    shutdown_scheduler = None  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +67,7 @@ def main():
         if sync_enabled:
             try:
                 logger.info("Initializing warehouse sync scheduler...")
-                scheduler_module.tasks.init_scheduler()
+                init_scheduler()
                 logger.info("Warehouse sync scheduler started")
             except Exception as e:
                 logger.error(f"Failed to start sync scheduler: {e}")
@@ -79,7 +84,7 @@ if __name__ == "__main__":
     def signal_handler(sig, frame):
         """Handle shutdown signal"""
         logger.info("Shutting down...")
-        scheduler_module.tasks.shutdown_scheduler()
+        shutdown_scheduler()
         sys.exit(0)
     
     signal.signal(signal.SIGINT, signal_handler)
