@@ -260,8 +260,8 @@ async def subscribe_project(
     project_id: int,
     channel: str = "email",
     channel_id: Optional[str] = None,
-    user_name: Optional[str] = None,      # 订阅人姓名
-    user_email: Optional[str] = None,     # 订阅人邮箱
+    user_name: Optional[str] = None,      # Subscriber name
+    user_email: Optional[str] = None,     # Subscriber email
     report_type: str = "daily",
     report_level: str = "brief",
     language: str = "zh_CN",              # zh_CN/en_US
@@ -272,34 +272,34 @@ async def subscribe_project(
     trend_period_days: int = 7
 ) -> Dict[str, Any]:
     """
-    订阅项目报告
+    Subscribe to project reports
 
     Args:
-        project_id: 项目 ID
-        channel: 推送渠道 (email/dingtalk/telegram)
-        channel_id: 渠道 ID (邮箱/钉钉用户 ID/Telegram chat ID)
-        user_name: 订阅人姓名
-        user_email: 订阅人邮箱（用于 email 渠道时作为收件人）
-        report_type: 报告类型 (daily/weekly/monthly)
-        report_level: 报告级别
-            - brief: 关键指标概览
-            - detailed: 详细统计 + 高优先级 Issue
-            - comprehensive: 完整报告 + 趋势分析 + 人员负载
-        language: 报告语言 (zh_CN/en_US)
-        send_time: 发送时间 (HH:MM 格式，如 "09:00")
-        send_day_of_week: 周报发送星期 (Mon/Tue/Wed/Thu/Fri/Sat/Sun)
-        send_day_of_month: 月报发送日期 (1-31，如 1 号或 15 号)
-        include_trend: 是否包含趋势分析
-        trend_period_days: 趋势分析周期 (天数)
+        project_id: Project ID
+        channel: Push channel (email/dingtalk/telegram)
+        channel_id: Channel ID (email address/DingTalk user ID/Telegram chat ID)
+        user_name: Subscriber name
+        user_email: Subscriber email (used as recipient for email channel)
+        report_type: Report type (daily/weekly/monthly)
+        report_level: Report level
+            - brief: Key metrics overview
+            - detailed: Detailed statistics + high priority issues
+            - comprehensive: Full report + trend analysis + team workload
+        language: Report language (zh_CN/en_US)
+        send_time: Send time (HH:MM format, e.g., "09:00")
+        send_day_of_week: Weekly report day (Mon/Tue/Wed/Thu/Fri/Sat/Sun)
+        send_day_of_month: Monthly report day (1-31, e.g., 1st or 15th)
+        include_trend: Include trend analysis
+        trend_period_days: Trend analysis period in days
 
     Returns:
-        订阅结果
+        Subscription result
 
     Examples:
-        # 订阅中文日报
+        # Subscribe to daily report in Chinese
         >>> subscribe_project(
         ...     project_id=341,
-        ...     user_name="张三",
+        ...     user_name="Zhang San",
         ...     user_email="zhangsan@example.com",
         ...     channel="email",
         ...     report_type="daily",
@@ -307,7 +307,7 @@ async def subscribe_project(
         ...     send_time="09:00"
         ... )
 
-        # 订阅英文周报
+        # Subscribe to weekly report in English
         >>> subscribe_project(
         ...     project_id=341,
         ...     user_name="John Doe",
@@ -319,7 +319,7 @@ async def subscribe_project(
         ...     send_time="09:00"
         ... )
 
-        # 订阅中文月报（包含趋势分析）
+        # Subscribe to monthly comprehensive report with trend analysis
         >>> subscribe_project(
         ...     project_id=341,
         ...     user_name="CEO",
@@ -359,11 +359,8 @@ async def subscribe_project(
         project_id=project_id,
         channel=channel,
         channel_id=channel_id,
-        user_name=user_name,
-        user_email=user_email,
         report_type=report_type,
         report_level=report_level,
-        language=language,
         send_time=send_time,
         send_day_of_week=send_day_of_week,
         send_day_of_month=send_day_of_month,
@@ -382,13 +379,13 @@ async def test_email_service(
     to_email: Optional[str] = None
 ) -> Dict[str, Any]:
     """
-    测试邮件服务配置
+    Test email service configuration
 
     Args:
-        to_email: 测试邮件接收地址 (可选，不传则只测试连接)
+        to_email: Test email recipient address (optional, only test connection if not provided)
 
     Returns:
-        测试结果
+        Test result
     """
     from ..dws.services.email_service import get_email_service
 
@@ -402,16 +399,16 @@ async def test_email_service(
 
     # Send test email if to_email provided
     if to_email:
-        subject = "[Redmine MCP] 邮件服务测试"
+        subject = "[Redmine MCP] Email Service Test"
         body = f"""
         <html>
         <body style="font-family: Arial, sans-serif;">
-            <h2>✅ 邮件服务配置成功</h2>
-            <p>这是一封测试邮件，用于验证 Redmine MCP Server 的邮件推送功能。</p>
+            <h2>✅ Email Service Configured Successfully</h2>
+            <p>This is a test email to verify the email push functionality of Redmine MCP Server.</p>
             <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
             <p style="color: #999; font-size: 12px;">
-                此邮件由 Redmine MCP Server 自动发送<br>
-                发送时间：{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+                This email was automatically sent by Redmine MCP Server<br>
+                Sent at: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
             </p>
         </body>
         </html>
