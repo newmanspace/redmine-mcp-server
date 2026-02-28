@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+from datetime import datetime
 from importlib.metadata import version, PackageNotFoundError
 
 """
@@ -53,6 +54,33 @@ mcp.settings.stateless_http = True
 
 # Export the Starlette/FastAPI app for testing and external use
 app = mcp.streamable_http_app()
+
+# Add health check endpoint
+@app.route("/health", methods=["GET"])
+async def health_check(request):
+    """Health check endpoint for monitoring and load balancers"""
+    from starlette.responses import JSONResponse
+    return JSONResponse({
+        "status": "healthy",
+        "version": get_version(),
+        "timestamp": datetime.now().isoformat()
+    })
+
+# Add root endpoint
+@app.route("/", methods=["GET"])
+async def root(request):
+    """Root endpoint with server info"""
+    from starlette.responses import JSONResponse
+    return JSONResponse({
+        "name": "Redmine MCP Server",
+        "version": get_version(),
+        "status": "running",
+        "endpoints": {
+            "health": "/health",
+            "mcp": "/mcp",
+            "files": "/files/{file_id}"
+        }
+    })
 
 
 def main():
