@@ -39,10 +39,17 @@ check_env_file() {
     echo "✅ .env.docker file found"
 }
 
-# Function to build Docker image
+# Function to build Docker image with force rebuild option
 build_image() {
-    echo "🔨 Building Docker image..."
-    docker build -t $IMAGE_NAME:latest .
+    local force_rebuild=$1
+    
+    if [ "$force_rebuild" = true ]; then
+        echo "🔨 Force building Docker image (no cache)..."
+        docker build --no-cache --force-rm -t $IMAGE_NAME:latest .
+    else
+        echo "🔨 Building Docker image..."
+        docker build -t $IMAGE_NAME:latest .
+    fi
     echo "✅ Docker image built successfully"
 }
 
@@ -62,7 +69,7 @@ cleanup_container() {
         echo "🛑 Stopping existing container..."
         docker stop $CONTAINER_NAME
     fi
-    
+
     if docker ps -aq -f name=$CONTAINER_NAME | grep -q .; then
         echo "🗑️  Removing existing container..."
         docker rm $CONTAINER_NAME
@@ -81,7 +88,7 @@ run_container() {
         -v "$(pwd)/data:/app/data" \
         --restart unless-stopped \
         $IMAGE_NAME:latest
-    
+
     echo "✅ Container started successfully"
     echo "📊 Container status:"
     docker ps -f name=$CONTAINER_NAME --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
@@ -100,7 +107,7 @@ show_logs() {
 test_deployment() {
     echo "🧪 Testing deployment..."
     sleep 5  # Wait for container to start
-    
+
     if curl -s -f http://localhost:8000/health > /dev/null 2>&1; then
         echo "✅ Health check passed"
     else
@@ -124,16 +131,18 @@ show_usage() {
 Usage: $0 [OPTIONS]
 
 Options:
-    --build-only    Build the Docker image only
-    --no-test      Skip deployment testing
-    --cleanup      Stop and remove container
-    --logs         Show container logs
-    --status       Show container status
-    --help         Show this help message
+    --build-only       Build the Docker image only
+    --force-rebuild    Force rebuild without cache
+    --no-test          Skip deployment testing
+    --cleanup          Stop and remove container
+    --logs             Show container logs
+    --status           Show container status
+    --help             Show this help message
 
 Examples:
     $0                  # Full deployment (build + run + test)
     $0 --build-only     # Build image only
+    $0 --force-rebuild  # Force rebuild with no cache
     $0 --cleanup        # Clean up existing deployment
     $0 --logs           # Show current container logs
     $0 --status         # Show container status
@@ -150,11 +159,16 @@ NO_TEST=false
 CLEANUP_ONLY=false
 LOGS_ONLY=false
 STATUS_ONLY=false
+FORCE_REBUILD=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         --build-only)
             BUILD_ONLY=true
+            shift
+            ;;
+        --force-rebuild)
+            FORCE_REBUILD=true
             shift
             ;;
         --no-test)
@@ -188,40 +202,40 @@ done
 # Main execution flow
 main() {
     check_docker
-    
+
     if [ "$LOGS_ONLY" = true ]; then
         show_logs
         exit 0
     fi
-    
+
     if [ "$STATUS_ONLY" = true ]; then
         echo "📊 Container status:"
         docker ps -f name=$CONTAINER_NAME --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
         exit 0
     fi
-    
+
     if [ "$CLEANUP_ONLY" = true ]; then
         cleanup_container
         echo "✅ Cleanup completed"
         exit 0
     fi
-    
+
     check_env_file
-    build_image
-    
+    build_image $FORCE_REBUILD
+
     if [ "$BUILD_ONLY" = true ]; then
         echo "✅ Build completed. Image: $IMAGE_NAME:latest"
         exit 0
     fi
-    
+
     create_network
     cleanup_container
     run_container
-    
+
     if [ "$NO_TEST" = false ]; then
         test_deployment
     fi
-    
+
     echo ""
     echo "🎉 Deployment completed!"
     echo "🌐 Server URL: http://localhost:8000"
