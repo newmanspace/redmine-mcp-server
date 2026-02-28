@@ -15,8 +15,7 @@
 - **[🇨🇳 中文文档](README_BILINGUAL.md)** - 中英文双语文档
 - **[🇺🇸 English Documentation](README_BILINGUAL.md)** - Bilingual Documentation (EN/ZH)
 
-**Additional Documentation / 其他文档**:
-- [Translation Progress Report / 翻译进度报告](TRANSLATION_COMPLETE_REPORT.md)
+**Documentation / 文档**:
 - [Deployment Guide / 部署指南](DEPLOYMENT_REPORT.md)
 
 ---

@@ -6,7 +6,6 @@
 > 
 > **Quick Links / 快速链接**:
 > - [Main README / 主页](README.md)
-> - [Translation Report / 翻译报告](TRANSLATION_COMPLETE_REPORT.md)
 > - [Deployment Guide / 部署指南](DEPLOYMENT_REPORT.md)
 
 **Version / 版本**: 0.10.0  
