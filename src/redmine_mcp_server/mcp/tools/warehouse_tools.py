@@ -19,7 +19,7 @@ async def unsubscribe_project(project_id: Optional[int] = None) -> Dict[str, Any
     Returns:
         取消结果
     """
-    from ..dws.services.subscription_service import get_subscription_manager
+    from ...dws.services.subscription_service import get_subscription_manager
 
     user_id = "default_user"
     manager = get_subscription_manager()
@@ -40,7 +40,7 @@ async def list_my_subscriptions() -> List[Dict[str, Any]]:
     Returns:
         subscription list
     """
-    from ..dws.services.subscription_service import get_subscription_manager
+    from ...dws.services.subscription_service import get_subscription_manager
 
     user_id = "default_user"
     manager = get_subscription_manager()
@@ -61,7 +61,7 @@ async def get_subscription_stats() -> Dict[str, Any]:
     Returns:
         统计数据
     """
-    from ..dws.services.subscription_service import get_subscription_manager
+    from ...dws.services.subscription_service import get_subscription_manager
 
     manager = get_subscription_manager()
     result = manager.get_stats()

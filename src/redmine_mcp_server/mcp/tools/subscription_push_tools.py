@@ -25,14 +25,14 @@ async def push_subscription_reports(
         Push statistics
     """
     try:
-        from ..dws.services.subscription_push_service import SubscriptionPushService
+        from ...dws.services.subscription_push_service import SubscriptionPushService
 
         logger.info(f"Manual trigger: Pushing {report_type} subscription reports...")
 
         service = SubscriptionPushService()
 
         if project_id:
-            from ..dws.services.subscription_service import get_subscription_manager
+            from ...dws.services.subscription_service import get_subscription_manager
 
             manager = get_subscription_manager()
 
@@ -109,7 +109,7 @@ async def send_project_report_email(
         Send result
     """
     try:
-        from ..dws.services.subscription_push_service import SubscriptionPushService
+        from ...dws.services.subscription_push_service import SubscriptionPushService
 
         logger.info(f"Sending {report_type} report email to {to_email}...")
 
@@ -135,7 +135,7 @@ async def send_project_report_email(
         except:
             project_name = f"Project {project_id}"
 
-        from ..dws.services.email_service import send_subscription_email
+        from ...dws.services.email_service import send_subscription_email
 
         result = send_subscription_email(to_email, project_name, report, report_level)
 

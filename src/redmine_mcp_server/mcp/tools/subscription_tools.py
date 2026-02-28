@@ -338,7 +338,7 @@ async def subscribe_project(
         ...     include_trend=True
         ... )
     """
-    from ..dws.services.subscription_service import get_subscription_manager
+    from ...dws.services.subscription_service import get_subscription_manager
 
     # Get current user ID (from context or default)
     user_id = "default_user"
@@ -390,7 +390,7 @@ async def test_email_service(to_email: Optional[str] = None) -> Dict[str, Any]:
     Returns:
         Test result
     """
-    from ..dws.services.email_service import get_email_service
+    from ...dws.services.email_service import get_email_service
 
     service = get_email_service()
 
