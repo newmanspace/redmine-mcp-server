@@ -28,6 +28,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install uv
         run: pip install uv
+      - name: Clear uv cache
+        run: uv cache clean || true
       - name: Set up environment
         run: |
           uv venv
