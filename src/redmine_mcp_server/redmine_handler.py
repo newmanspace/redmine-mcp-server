@@ -1901,7 +1901,7 @@ async def get_project_daily_stats(
     date: Optional[str] = None,
     compare_with: Optional[str] = None
 ) -> Dict[str, Any]:
-    """获取项目每日统计数据，支持时间维度对比。使用 PostgreSQL 数仓，Token 消耗低 97%。"""
+    """Get project daily statistics with time-series comparison. Uses PostgreSQL warehouse, 97% lower token consumption."""
     from datetime import timedelta
     from .redmine_warehouse import DataWarehouse
     import requests
@@ -1999,16 +1999,16 @@ async def subscribe_project(
     push_time: Optional[str] = None
 ) -> Dict[str, Any]:
     """
-    订阅项目报告
-    
+    Subscribe to project report
+
     Args:
-        project_id: 项目 ID
-        frequency: 推送频率 (realtime/daily/weekly/monthly)
-        level: 报告级别 (brief/detailed)
-        push_time: 推送时间 (daily 用 "09:00", weekly 用 "Mon 09:00")
-    
+        project_id: Project ID
+        frequency: Push frequency (realtime/daily/weekly/monthly)
+        level: Report level (brief/detailed)
+        push_time: Push time (daily use "09:00", weekly use "Mon 09:00")
+
     Returns:
-        订阅结果
+        Subscription result
     """
     from .subscriptions import get_subscription_manager
     
@@ -2040,13 +2040,13 @@ async def unsubscribe_project(
     project_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """
-    取消项目订阅
-    
+    Unsubscribe from project
+
     Args:
-        project_id: 项目 ID (可选，不传则取消所有订阅)
-    
+        project_id: Project ID (optional, unsubscribe all if not provided)
+
     Returns:
-        取消结果
+        Unsubscription result
     """
     from .subscriptions import get_subscription_manager
     
@@ -2059,10 +2059,10 @@ async def unsubscribe_project(
 @mcp.tool()
 async def list_my_subscriptions() -> List[Dict[str, Any]]:
     """
-    查看我的订阅列表
-    
+    View my subscriptions
+
     Returns:
-        订阅列表
+        Subscription list
     """
     from .subscriptions import get_subscription_manager
     
@@ -2075,10 +2075,10 @@ async def list_my_subscriptions() -> List[Dict[str, Any]]:
 @mcp.tool()
 async def get_subscription_stats() -> Dict[str, Any]:
     """
-    获取订阅统计信息
-    
+    Get subscription statistics
+
     Returns:
-        统计数据
+        Statistics data
     """
     from .subscriptions import get_subscription_manager
     

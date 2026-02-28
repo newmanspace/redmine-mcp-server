@@ -65,7 +65,7 @@ class SubscriptionPushService:
         stats: Dict[str, Any],
         level: str = "brief"
     ) -> bool:
-        """发送电子邮件报告"""
+        """Send email report"""
         try:
             from .email_service import send_subscription_email
             result = send_subscription_email(to_email, project_name, stats, level)
