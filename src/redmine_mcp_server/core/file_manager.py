@@ -83,7 +83,8 @@ class AttachmentFileManager:
         total_files = 0
         total_size = 0
 
-        # Count files in UUID directories (exclude metadata.json) with error handling
+        # Count files in UUID directories (exclude metadata.json) with error
+        # handling
         try:
             uuid_dirs = [d for d in self.attachments_dir.iterdir() if d.is_dir()]
         except OSError:
@@ -97,7 +98,8 @@ class AttachmentFileManager:
                             total_files += 1
                             total_size += file_path.stat().st_size
                         except OSError:
-                            # Skip files we can't stat (permission issues, etc.)
+                            # Skip files we can't stat (permission issues,
+                            # etc.)
                             continue
             except OSError:
                 # Skip directories we can't access

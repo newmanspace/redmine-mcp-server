@@ -7,7 +7,7 @@ Tools for managing Redmine issues.
 """
 
 from ..server import mcp, redmine, logger
-from typing import Dict, Any, List, Optional, Union
+
 
 @mcp.tool()
 async def get_redmine_issue(
@@ -274,5 +274,3 @@ async def list_my_redmine_issues(
 
     except Exception as e:
         return [_handle_redmine_error(e, "listing assigned issues")]
-
-

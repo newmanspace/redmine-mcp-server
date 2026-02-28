@@ -1,3 +1,5 @@
+import os
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -5,7 +7,7 @@ Redmine MCP - Search Management Tools
 """
 
 from ..server import mcp, redmine, logger
-from typing import Dict, Any, List, Optional, Union
+
 
 @mcp.tool()
 async def search_entire_redmine(
@@ -219,5 +221,3 @@ async def get_redmine_wiki_page(
             f"fetching wiki page '{wiki_page_title}' in project {project_id}",
             {"resource_type": "wiki page", "resource_id": wiki_page_title},
         )
-
-

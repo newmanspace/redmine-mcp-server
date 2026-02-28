@@ -29,7 +29,7 @@ class EmailPushService:
         self.sender_email = os.getenv("EMAIL_SENDER_EMAIL", self.smtp_user)
         self.sender_name = os.getenv("EMAIL_SENDER_NAME", "Redmine MCP Server")
         self.use_tls = os.getenv("EMAIL_USE_TLS", "true").lower() == "true"
-        
+
         self._validate_config()
 
     def _validate_config(self):
@@ -42,11 +42,7 @@ class EmailPushService:
             logger.warning("EMAIL_SMTP_PASSWORD not configured")
 
     def send_email(
-        self,
-        to_email: str,
-        subject: str,
-        body: str,
-        html: bool = False
+        self, to_email: str, subject: str, body: str, html: bool = False
     ) -> Dict[str, Any]:
         """
         sendemail
@@ -61,21 +57,18 @@ class EmailPushService:
             sendresult
         """
         if not self._is_configured():
-            return {
-                "success": False,
-                "error": "Email service not configured properly"
-            }
+            return {"success": False, "error": "Email service not configured properly"}
 
         try:
             # Create message
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = Header(subject, 'utf-8')
-            msg['From'] = f"{self.sender_name} <{self.sender_email}>"
-            msg['To'] = to_email
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = Header(subject, "utf-8")
+            msg["From"] = f"{self.sender_name} <{self.sender_email}>"
+            msg["To"] = to_email
 
             # Attach body
-            content_type = 'html' if html else 'plain'
-            msg.attach(MIMEText(body, content_type, 'utf-8'))
+            content_type = "html" if html else "plain"
+            msg.attach(MIMEText(body, content_type, "utf-8"))
 
             # Connect and send
             if self.use_tls:
@@ -83,7 +76,7 @@ class EmailPushService:
                 server.starttls()
             else:
                 server = smtplib.SMTP_SSL(self.smtp_server, self.smtp_port)
-            
+
             server.login(self.smtp_user, self.smtp_password)
             server.sendmail(self.sender_email, [to_email], msg.as_string())
             server.quit()
@@ -94,27 +87,18 @@ class EmailPushService:
                 "success": True,
                 "message": f"Email sent to {to_email}",
                 "to": to_email,
-                "subject": subject
+                "subject": subject,
             }
 
         except smtplib.SMTPAuthenticationError as e:
             logger.error(f"SMTP authentication failed: {e}")
-            return {
-                "success": False,
-                "error": f"SMTP authentication failed: {str(e)}"
-            }
+            return {"success": False, "error": f"SMTP authentication failed: {str(e)}"}
         except smtplib.SMTPException as e:
             logger.error(f"SMTP error: {e}")
-            return {
-                "success": False,
-                "error": f"SMTP error: {str(e)}"
-            }
+            return {"success": False, "error": f"SMTP error: {str(e)}"}
         except Exception as e:
             logger.error(f"Failed to send email: {e}")
-            return {
-                "success": False,
-                "error": f"Failed to send email: {str(e)}"
-            }
+            return {"success": False, "error": f"Failed to send email: {str(e)}"}
 
     def _is_configured(self) -> bool:
         """checkemailservice是否已正确configuration"""
@@ -123,10 +107,7 @@ class EmailPushService:
     def test_connection(self) -> Dict[str, Any]:
         """testemailserviceconnection"""
         if not self._is_configured():
-            return {
-                "success": False,
-                "error": "Email service not configured"
-            }
+            return {"success": False, "error": "Email service not configured"}
 
         try:
             if self.use_tls:
@@ -134,7 +115,7 @@ class EmailPushService:
                 server.starttls()
             else:
                 server = smtplib.SMTP_SSL(self.smtp_server, self.smtp_port)
-            
+
             server.login(self.smtp_user, self.smtp_password)
             server.quit()
 
@@ -142,13 +123,10 @@ class EmailPushService:
                 "success": True,
                 "message": "SMTP connection successful",
                 "server": self.smtp_server,
-                "port": self.smtp_port
+                "port": self.smtp_port,
             }
         except Exception as e:
-            return {
-                "success": False,
-                "error": str(e)
-            }
+            return {"success": False, "error": str(e)}
 
 
 # Global service instance
@@ -168,7 +146,7 @@ def send_subscription_email(
     project_name: str,
     report: Dict[str, Any],
     level: str = "brief",
-    language: str = "zh_CN"
+    language: str = "zh_CN",
 ) -> Dict[str, Any]:
     """
     Send subscription report email (multi-language support)
@@ -186,20 +164,21 @@ def send_subscription_email(
     service = get_email_service()
 
     # Generate subject based on report type and language
-    report_type = report.get('type', 'daily')
-    
+    report_type = report.get("type", "daily")
+
     # Format date info based on report type
-    if report_type == 'daily':
-        date_info = report.get('date', datetime.now().strftime("%Y-%m-%d"))
-    elif report_type == 'weekly':
-        date_info = f"{report.get('week_start', '')} {_('to', language)} {report.get('week_end', '')}"
+    if report_type == "daily":
+        date_info = report.get("date", datetime.now().strftime("%Y-%m-%d"))
+    elif report_type == "weekly":
+        date_info = f"{report.get('week_start', '')} to {report.get('week_end', '')}"
     else:
-        date_info = report.get('month', datetime.now().strftime("%Y-%m"))
-    
+        date_info = report.get("month", datetime.now().strftime("%Y-%m"))
+
     # Import i18n
     from ..i18n import format_email_subject
+
     subject = format_email_subject(report_type, project_name, date_info, language)
-    
+
     # Generate email body
     body = _generate_email_body(project_name, report, level, language)
 
@@ -210,24 +189,29 @@ def _generate_email_body(
     project_name: str,
     report: Dict[str, Any],
     level: str = "brief",
-    language: str = "zh_CN"
+    language: str = "zh_CN",
 ) -> str:
     """Generate email html content (multi-language support)"""
-    stats = report.get('stats', {})
-    report_type = report.get('type', 'daily')
-    
+    stats = report.get("stats", {})
+    report_type = report.get("type", "daily")
+
     # Import i18n translations
     from ..i18n import (
-        get_translations, get_report_type_name, get_section_name,
-        get_metric_name, get_trend_name, get_status_name, get_priority_name
+        get_translations,
+        get_report_type_name,
+        get_section_name,
+        get_metric_name,
+        get_trend_name,
+        get_status_name,
+        get_priority_name,
     )
-    
+
     t = get_translations(language)
-    
+
     # Header
     report_type_name = get_report_type_name(report_type, language)
-    date_str = report.get('date', report.get('week_start', report.get('month', '')))
-    
+    date_str = report.get("date", report.get("week_start", report.get("month", "")))
+
     html = f"""
     <html>
     <head>
@@ -245,30 +229,30 @@ def _generate_email_body(
                 end=report.get('week_end', '')
             )}</p>
     """
-    
+
     # 概览部分
     html += _generate_overview_section(stats, report, language)
-    
+
     # status分布
-    if stats.get('by_status'):
-        html += _generate_status_section(stats['by_status'], language)
-    
+    if stats.get("by_status"):
+        html += _generate_status_section(stats["by_status"], language)
+
     # priority分布
-    if stats.get('by_priority'):
-        html += _generate_priority_section(stats['by_priority'], language)
-    
+    if stats.get("by_priority"):
+        html += _generate_priority_section(stats["by_priority"], language)
+
     # 高priority Issue
-    if level in ['detailed', 'comprehensive'] and stats.get('high_priority_issues'):
-        html += _generate_high_priority_section(stats['high_priority_issues'], language)
-    
+    if level in ["detailed", "comprehensive"] and stats.get("high_priority_issues"):
+        html += _generate_high_priority_section(stats["high_priority_issues"], language)
+
     # 人员job量
-    if level in ['detailed', 'comprehensive'] and stats.get('top_assignees'):
-        html += _generate_assignees_section(stats['top_assignees'], language)
-    
+    if level in ["detailed", "comprehensive"] and stats.get("top_assignees"):
+        html += _generate_assignees_section(stats["top_assignees"], language)
+
     # trendanalysis
-    if level == 'comprehensive' and report.get('trend_analysis'):
-        html += _generate_trend_section(report['trend_analysis'], language)
-    
+    if level == "comprehensive" and report.get("trend_analysis"):
+        html += _generate_trend_section(report["trend_analysis"], language)
+
     # Footer
     html += f"""
             <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
@@ -282,53 +266,53 @@ def _generate_email_body(
     </body>
     </html>
     """
-    
+
     return html
 
 
 def _generate_overview_section(stats: Dict, report: Dict) -> str:
     """generate概览部分"""
-    report_type = report.get('type', 'daily')
-    
+    report_type = report.get("type", "daily")
+
     # 根据reportclass型显示不同的指标
-    if report_type == 'daily':
+    if report_type == "daily":
         metrics = [
-            ('Issue 总数', stats.get('total_issues', 0)),
-            ('今日新增', f"+{stats.get('today_new', 0)}"),
-            ('今日shutdown', stats.get('today_closed', 0)),
-            ('未shutdown', stats.get('open_issues', 0))
+            ("Issue 总数", stats.get("total_issues", 0)),
+            ("今日新增", f"+{stats.get('today_new', 0)}"),
+            ("今日shutdown", stats.get("today_closed", 0)),
+            ("未shutdown", stats.get("open_issues", 0)),
         ]
-    elif report_type == 'weekly':
-        weekly = report.get('weekly_summary', {})
+    elif report_type == "weekly":
+        weekly = report.get("weekly_summary", {})
         metrics = [
-            ('Issue 总数', stats.get('total_issues', 0)),
-            ('本周新增', weekly.get('week_new', 0)),
-            ('本周shutdown', weekly.get('week_closed', 0)),
-            ('净变化', f"+{weekly.get('week_net_change', 0)}")
+            ("Issue 总数", stats.get("total_issues", 0)),
+            ("本周新增", weekly.get("week_new", 0)),
+            ("本周shutdown", weekly.get("week_closed", 0)),
+            ("净变化", f"+{weekly.get('week_net_change', 0)}"),
         ]
     else:  # monthly
-        monthly = report.get('monthly_summary', {})
+        monthly = report.get("monthly_summary", {})
         metrics = [
-            ('Issue 总数', stats.get('total_issues', 0)),
-            ('本月新增', monthly.get('month_new', 0)),
-            ('本月shutdown', monthly.get('month_closed', 0)),
-            ('净变化', f"+{monthly.get('month_net_change', 0)}")
+            ("Issue 总数", stats.get("total_issues", 0)),
+            ("本月新增", monthly.get("month_new", 0)),
+            ("本月shutdown", monthly.get("month_closed", 0)),
+            ("净变化", f"+{monthly.get('month_net_change', 0)}"),
         ]
-        if report.get('completion_rate'):
-            metrics.append(('完成率', f"{report['completion_rate']}%"))
-        if report.get('avg_resolution_days'):
-            metrics.append(('平均解决天数', report['avg_resolution_days']))
+        if report.get("completion_rate"):
+            metrics.append(("完成率", f"{report['completion_rate']}%"))
+        if report.get("avg_resolution_days"):
+            metrics.append(("平均解决天数", report["avg_resolution_days"]))
 
     rows = ""
     for label, value in metrics:
-        color = ''
-        if '新增' in label and str(value).startswith('+'):
-            color = 'color: #28a745;'
-        elif 'shutdown' in label:
-            color = 'color: #007bff;'
-        elif '未shutdown' in label:
-            color = 'color: #dc3545;'
-        
+        color = ""
+        if "新增" in label and str(value).startswith("+"):
+            color = "color: #28a745;"
+        elif "shutdown" in label:
+            color = "color: #007bff;"
+        elif "未shutdown" in label:
+            color = "color: #dc3545;"
+
         rows += f"""
         <tr>
             <td style="padding: 12px; border: 1px solid #ddd;">{label}</td>

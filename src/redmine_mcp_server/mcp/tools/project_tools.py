@@ -1,3 +1,5 @@
+import os
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -5,7 +7,7 @@ Redmine MCP - Project Management Tools
 """
 
 from ..server import mcp, redmine, logger
-from typing import Dict, Any, List, Optional, Union
+
 
 @mcp.tool()
 async def search_redmine_issues(
@@ -189,5 +191,3 @@ async def search_redmine_issues(
 
     except Exception as e:
         return _handle_redmine_error(e, f"searching issues with query '{query}'")
-
-

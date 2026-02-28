@@ -1,3 +1,7 @@
+import os
+import uuid
+from pathlib import Path
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -5,7 +9,7 @@ Redmine MCP - Wiki Management Tools
 """
 
 from ..server import mcp, redmine, logger
-from typing import Dict, Any, List, Optional, Union
+
 
 @mcp.tool()
 async def create_redmine_issue(
@@ -196,5 +200,3 @@ async def get_redmine_attachment_download_url(
             f"downloading attachment {attachment_id}",
             {"resource_type": "attachment", "resource_id": attachment_id},
         )
-
-

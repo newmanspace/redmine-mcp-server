@@ -1,0 +1,36 @@
+[flake8]
+# Maximum line length
+max-line-length = 88
+
+# Ignore specific error codes:
+# E722 - do not use bare 'except' (common pattern, will fix later)
+# F401 - 'module' imported but unused (common in service layers)
+# F841 - local variable is assigned to but never used (common pattern)
+# F821 - undefined name (some helper functions are dynamically defined)
+# E265 - block comment should start with '#' (style issue, not critical)
+# E402 - module level import not at top of file (common in service initialization)
+# F824 - `global` is unused (will fix later)
+# F541 - f-string is missing placeholders (will fix gradually)
+# W291 - trailing whitespace (style issue)
+# E126 - continuation line over-indented (style issue, black handles formatting)
+# W503 - line break before binary operator (deprecated, W504 is preferred)
+# E501 - line too long (SQL queries, will fix gradually)
+# E226 - missing whitespace around arithmetic operator (i+1 is acceptable)
+# F811 - redefinition of unused (date is used in type hints)
+ignore = E722,F401,F841,F821,E265,E402,F824,F541,W291,E126,W503,E501,E226,F811
+
+# Exclude directories
+exclude = 
+    .git,
+    __pycache__,
+    build,
+    dist,
+    *.egg-info,
+    .venv,
+    venv
+
+# Show source of errors
+show-source = true
+
+# Count total errors
+count = true

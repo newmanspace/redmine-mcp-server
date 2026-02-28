@@ -25,10 +25,7 @@ SUBSCRIPTION_LEVELS = Literal["brief", "detailed"]
 PUSH_CHANNELS = Literal["dingtalk", "telegram", "email"]
 
 # Fallback JSON file path (for offline mode)
-SUBSCRIPTIONS_FILE = os.getenv(
-    "SUBSCRIPTIONS_FILE",
-    "./data/subscriptions.json"
-)
+SUBSCRIPTIONS_FILE = os.getenv("SUBSCRIPTIONS_FILE", "./data/subscriptions.json")
 
 
 class SubscriptionManager:
@@ -43,6 +40,7 @@ class SubscriptionManager:
         """Initialize data warehouse connection"""
         try:
             from ..repository import DataWarehouse
+
             self.warehouse = DataWarehouse()
             logger.info("SubscriptionManager: Warehouse connection initialized")
         except Exception as e:
@@ -65,7 +63,7 @@ class SubscriptionManager:
                         )
                     """)
                     result = cur.fetchone()
-                    return result['exists'] if result else False
+                    return result["exists"] if result else False
         except Exception:
             return False
 
@@ -87,21 +85,31 @@ class SubscriptionManager:
                     rows = cur.fetchall()
                     subscriptions = {}
                     for row in rows:
-                        sub_id = row['subscription_id']
+                        sub_id = row["subscription_id"]
                         subscriptions[sub_id] = {
-                            'subscription_id': sub_id,
-                            'user_id': row['user_id'],
-                            'project_id': row['project_id'],
-                            'channel': row['channel'],
-                            'channel_id': row['channel_id'],
-                            'frequency': row['frequency'],
-                            'level': row['level'],
-                            'push_time': row['push_time'],
-                            'enabled': row['enabled'],
-                            'created_at': row['created_at'].isoformat() if row['created_at'] else None,
-                            'updated_at': row['updated_at'].isoformat() if row['updated_at'] else None
+                            "subscription_id": sub_id,
+                            "user_id": row["user_id"],
+                            "project_id": row["project_id"],
+                            "channel": row["channel"],
+                            "channel_id": row["channel_id"],
+                            "frequency": row["frequency"],
+                            "level": row["level"],
+                            "push_time": row["push_time"],
+                            "enabled": row["enabled"],
+                            "created_at": (
+                                row["created_at"].isoformat()
+                                if row["created_at"]
+                                else None
+                            ),
+                            "updated_at": (
+                                row["updated_at"].isoformat()
+                                if row["updated_at"]
+                                else None
+                            ),
                         }
-                    logger.info(f"Loaded {len(subscriptions)} subscriptions from database")
+                    logger.info(
+                        f"Loaded {len(subscriptions)} subscriptions from database"
+                    )
                     return subscriptions
         except Exception as e:
             logger.error(f"Failed to load subscriptions from database: {e}")
@@ -115,7 +123,8 @@ class SubscriptionManager:
         try:
             with self.warehouse.get_connection() as conn:
                 with conn.cursor() as cur:
-                    cur.execute("""
+                    cur.execute(
+                        """
                         INSERT INTO warehouse.ads_user_subscriptions (
                             subscription_id, user_id, project_id, channel,
                             channel_id, frequency, level, push_time,
@@ -129,19 +138,21 @@ class SubscriptionManager:
                             push_time = EXCLUDED.push_time,
                             enabled = EXCLUDED.enabled,
                             updated_at = EXCLUDED.updated_at
-                    """, (
-                        subscription['subscription_id'],
-                        subscription['user_id'],
-                        subscription['project_id'],
-                        subscription['channel'],
-                        subscription['channel_id'],
-                        subscription['frequency'],
-                        subscription['level'],
-                        subscription.get('push_time'),
-                        subscription.get('enabled', True),
-                        subscription.get('created_at'),
-                        subscription['updated_at']
-                    ))
+                    """,
+                        (
+                            subscription["subscription_id"],
+                            subscription["user_id"],
+                            subscription["project_id"],
+                            subscription["channel"],
+                            subscription["channel_id"],
+                            subscription["frequency"],
+                            subscription["level"],
+                            subscription.get("push_time"),
+                            subscription.get("enabled", True),
+                            subscription.get("created_at"),
+                            subscription["updated_at"],
+                        ),
+                    )
         except Exception as e:
             logger.error(f"Failed to save subscription to database: {e}")
             raise
@@ -154,30 +165,33 @@ class SubscriptionManager:
         try:
             with self.warehouse.get_connection() as conn:
                 with conn.cursor() as cur:
-                    cur.execute("""
+                    cur.execute(
+                        """
                         DELETE FROM warehouse.ads_user_subscriptions
                         WHERE subscription_id = %s
-                    """, (subscription_id,))
+                    """,
+                        (subscription_id,),
+                    )
         except Exception as e:
             logger.error(f"Failed to delete subscription from database: {e}")
 
     def _load_subscriptions(self) -> Dict[str, Any]:
         """Load subscription configuration from database"""
         return self._load_subscriptions_from_db()
-    
+
     def subscribe(
         self,
         user_id: str,
         project_id: int,
         channel: str,
         channel_id: str,
-        report_type: str = "daily",         # daily/weekly/monthly
-        report_level: str = "brief",        # brief/detailed/comprehensive
-        send_time: str = "09:00",           # 发送时间
+        report_type: str = "daily",  # daily/weekly/monthly
+        report_level: str = "brief",  # brief/detailed/comprehensive
+        send_time: str = "09:00",  # 发送时间
         send_day_of_week: Optional[str] = None,  # Mon-Sun (周报用)
-        send_day_of_month: Optional[int] = None, # 1-31 (月报用)
+        send_day_of_month: Optional[int] = None,  # 1-31 (月报用)
         include_trend: bool = True,
-        trend_period_days: int = 7
+        trend_period_days: int = 7,
     ) -> Dict[str, Any]:
         """
         Subscribe to project report
@@ -216,26 +230,28 @@ class SubscriptionManager:
             "trend_period_days": trend_period_days,
             "created_at": now.isoformat(),
             "updated_at": now.isoformat(),
-            "enabled": True
+            "enabled": True,
         }
 
         # Save to database
         self._save_subscription_to_db(subscription)
 
-        logger.info(f"User {user_id} subscribed to project {project_id} ({report_type} report)")
+        logger.info(
+            f"User {user_id} subscribed to project {project_id} ({report_type} report)"
+        )
 
         return {
             "success": True,
             "subscription_id": subscription_id,
             "message": f"Subscribed to {report_type} report for project {project_id}",
-            "subscription": subscription
+            "subscription": subscription,
         }
 
     def unsubscribe(
         self,
         user_id: str,
         project_id: Optional[int] = None,
-        channel: Optional[str] = None
+        channel: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Unsubscribe from project
@@ -268,24 +284,24 @@ class SubscriptionManager:
             self._delete_subscription_from_db(sub_id)
 
         if removed:
-            logger.info(f"User {user_id} unsubscribed from {len(removed)} subscriptions")
+            logger.info(
+                f"User {user_id} unsubscribed from {len(removed)} subscriptions"
+            )
             return {
                 "success": True,
                 "removed_count": len(removed),
                 "removed_subscriptions": removed,
-                "message": f"Cancelled {len(removed)} subscriptions"
+                "message": f"Cancelled {len(removed)} subscriptions",
             }
         else:
-            return {
-                "success": False,
-                "message": "No matching subscription found"
-            }
+            return {"success": False, "message": "No matching subscription found"}
 
     def get_user_subscriptions(self, user_id: str) -> List[Dict[str, Any]]:
         """Get all user subscriptions"""
         subscriptions = self._load_subscriptions()
         return [
-            sub for sub in subscriptions.values()
+            sub
+            for sub in subscriptions.values()
             if sub["user_id"] == user_id and sub.get("enabled", True)
         ]
 
@@ -293,14 +309,13 @@ class SubscriptionManager:
         """Get all project subscribers"""
         subscriptions = self._load_subscriptions()
         return [
-            sub for sub in subscriptions.values()
+            sub
+            for sub in subscriptions.values()
             if sub["project_id"] == project_id and sub.get("enabled", True)
         ]
-    
+
     def get_due_subscriptions(
-        self,
-        frequency: str,
-        current_time: Optional[datetime] = None
+        self, frequency: str, current_time: Optional[datetime] = None
     ) -> List[Dict[str, Any]]:
         """
         Get subscriptions due for push
@@ -356,19 +371,12 @@ class SubscriptionManager:
 
         return due_subs
 
-    def update_subscription(
-        self,
-        subscription_id: str,
-        **kwargs
-    ) -> Dict[str, Any]:
+    def update_subscription(self, subscription_id: str, **kwargs) -> Dict[str, Any]:
         """Update subscription configuration"""
         subscriptions = self._load_subscriptions()
-        
+
         if subscription_id not in subscriptions:
-            return {
-                "success": False,
-                "message": "Subscription does not exist"
-            }
+            return {"success": False, "message": "Subscription does not exist"}
 
         sub = subscriptions[subscription_id]
 
@@ -379,15 +387,11 @@ class SubscriptionManager:
                 sub[key] = value
 
         sub["updated_at"] = datetime.now().isoformat()
-        
+
         # Save to database
         self._save_subscription_to_db(sub)
 
-        return {
-            "success": True,
-            "message": "Subscription updated",
-            "subscription": sub
-        }
+        return {"success": True, "message": "Subscription updated", "subscription": sub}
 
     def list_all_subscriptions(self) -> List[Dict[str, Any]]:
         """List all subscriptions"""
@@ -417,7 +421,7 @@ class SubscriptionManager:
             "by_frequency": by_frequency,
             "by_channel": by_channel,
             "by_project": by_project,
-            "active_subscriptions": sum(1 for s in subs if s.get("enabled", True))
+            "active_subscriptions": sum(1 for s in subs if s.get("enabled", True)),
         }
 
     def close(self):

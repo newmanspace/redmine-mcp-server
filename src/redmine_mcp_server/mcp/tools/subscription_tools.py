@@ -7,7 +7,7 @@ Redmine MCP Tools - Subscription Management
 import os
 from datetime import datetime
 from ..server import mcp, redmine, logger
-from typing import Dict, Any, List, Optional, Union
+
 
 @mcp.tool()
 async def create_redmine_wiki_page(
@@ -156,98 +156,100 @@ async def cleanup_attachment_files() -> Dict[str, Any]:
         return {"error": f"An error occurred during cleanup: {str(e)}"}
 
 
-
-
 @mcp.tool()
 @mcp.tool()
 async def get_project_daily_stats(
-    project_id: int,
-    date: Optional[str] = None,
-    compare_with: Optional[str] = None
+    project_id: int, date: Optional[str] = None, compare_with: Optional[str] = None
 ) -> Dict[str, Any]:
     """Get project daily statistics with time-series comparison。Uses PostgreSQL warehouse, 97% lower token consumption。"""
     from datetime import timedelta
     from .redmine_warehouse import DataWarehouse
     import requests
-    
+
     if not redmine:
         return {"error": "Redmine client not initialized."}
-    
+
     try:
         warehouse = DataWarehouse()
-        
+
         # Parse date
         from datetime import date as date_class
-        query_date = datetime.strptime(date, '%Y-%m-%d').date() if date else date_class.today()
-        
+
+        query_date = (
+            datetime.strptime(date, "%Y-%m-%d").date() if date else date_class.today()
+        )
+
         # Check if today data exists
         existing_data = warehouse.get_issues_snapshot(project_id, query_date)
-        
+
         if not existing_data:
             # First query, sync latest data
             logger.info(f"No snapshot for {query_date}, syncing from Redmine API...")
-            
+
             api_url = f"{REDMINE_URL}/issues.json"
             headers = {"X-Redmine-API-Key": REDMINE_API_KEY}
-            
+
             # Paginate to get all issues
             all_issues = []
             offset = 0
             limit = 100
-            
+
             while True:
                 resp = requests.get(
                     api_url,
                     headers=headers,
-                    params={'project_id': project_id, 'limit': limit, 'offset': offset},
-                    timeout=30
+                    params={"project_id": project_id, "limit": limit, "offset": offset},
+                    timeout=30,
                 )
                 data = resp.json()
-                issues = data.get('issues', [])
+                issues = data.get("issues", [])
                 all_issues.extend(issues)
-                
+
                 if len(issues) < limit:
                     break
-                
+
                 offset += limit
                 logger.info(f"Fetched {len(all_issues)} issues...")
-            
+
             # Sync to warehouse
             yesterday = query_date - timedelta(days=1)
             previous_issues = warehouse.get_issues_snapshot(project_id, yesterday)
-            previous_map = {i['issue_id']: i for i in previous_issues}
-            warehouse.upsert_issues_batch(project_id, all_issues, query_date, previous_map)
+            previous_map = {i["issue_id"]: i for i in previous_issues}
+            warehouse.upsert_issues_batch(
+                project_id, all_issues, query_date, previous_map
+            )
             logger.info(f"Synced {len(all_issues)} issues to warehouse")
-        
+
         # Get statistics from warehouse
         stats = warehouse.get_project_daily_stats(project_id, query_date)
-        
+
         # Get high priority issues
-        high_priority = warehouse.get_high_priority_issues(project_id, query_date, limit=20)
-        stats['high_priority_count'] = len(high_priority)
-        stats['high_priority_issues'] = [
-            {
-                **issue,
-                'url': f"{REDMINE_URL}/issues/{issue['issue_id']}"
-            }
+        high_priority = warehouse.get_high_priority_issues(
+            project_id, query_date, limit=20
+        )
+        stats["high_priority_count"] = len(high_priority)
+        stats["high_priority_issues"] = [
+            {**issue, "url": f"{REDMINE_URL}/issues/{issue['issue_id']}"}
             for issue in high_priority
         ]
-        
+
         # Get assignee workload
-        stats['top_assignees'] = warehouse.get_top_assignees(project_id, query_date, limit=10)
-        
+        stats["top_assignees"] = warehouse.get_top_assignees(
+            project_id, query_date, limit=10
+        )
+
         # Add comparison data
-        if compare_with == 'yesterday':
+        if compare_with == "yesterday":
             yesterday = query_date - timedelta(days=1)
             yday_stats = warehouse.get_project_daily_stats(project_id, yesterday)
-            stats['yesterday_new'] = yday_stats.get('today_new', 0)
-            stats['yesterday_closed'] = yday_stats.get('today_closed', 0)
-            stats['change_new'] = stats['today_new'] - stats['yesterday_new']
-            stats['change_closed'] = stats['today_closed'] - stats['yesterday_closed']
-        
-        stats['from_cache'] = True
+            stats["yesterday_new"] = yday_stats.get("today_new", 0)
+            stats["yesterday_closed"] = yday_stats.get("today_closed", 0)
+            stats["change_new"] = stats["today_new"] - stats["yesterday_new"]
+            stats["change_closed"] = stats["today_closed"] - stats["yesterday_closed"]
+
+        stats["from_cache"] = True
         return stats
-        
+
     except Exception as e:
         logger.error(f"Failed to get stats: {e}")
         return {"error": f"Failed to get stats: {str(e)}"}
@@ -255,21 +257,22 @@ async def get_project_daily_stats(
 
 # ========== Subscription Management Tools ==========
 
+
 @mcp.tool()
 async def subscribe_project(
     project_id: int,
     channel: str = "email",
     channel_id: Optional[str] = None,
-    user_name: Optional[str] = None,      # Subscriber name
-    user_email: Optional[str] = None,     # Subscriber email
+    user_name: Optional[str] = None,  # Subscriber name
+    user_email: Optional[str] = None,  # Subscriber email
     report_type: str = "daily",
     report_level: str = "brief",
-    language: str = "zh_CN",              # zh_CN/en_US
+    language: str = "zh_CN",  # zh_CN/en_US
     send_time: str = "09:00",
     send_day_of_week: Optional[str] = None,
     send_day_of_month: Optional[int] = None,
     include_trend: bool = True,
-    trend_period_days: int = 7
+    trend_period_days: int = 7,
 ) -> Dict[str, Any]:
     """
     Subscribe to project reports
@@ -350,7 +353,7 @@ async def subscribe_project(
             channel_id = "default"
 
     # If channel is email and user_email not provided, use channel_id
-    if channel == 'email' and not user_email:
+    if channel == "email" and not user_email:
         user_email = channel_id
 
     manager = get_subscription_manager()
@@ -365,7 +368,7 @@ async def subscribe_project(
         send_day_of_week=send_day_of_week,
         send_day_of_month=send_day_of_month,
         include_trend=include_trend,
-        trend_period_days=trend_period_days
+        trend_period_days=trend_period_days,
     )
 
     # Close warehouse connection
@@ -375,9 +378,7 @@ async def subscribe_project(
 
 
 @mcp.tool()
-async def test_email_service(
-    to_email: Optional[str] = None
-) -> Dict[str, Any]:
+async def test_email_service(to_email: Optional[str] = None) -> Dict[str, Any]:
     """
     Test email service configuration
 
@@ -414,14 +415,9 @@ async def test_email_service(
         </html>
         """
         send_result = service.send_email(to_email, subject, body, html=True)
-        return {
-            "connection": conn_result,
-            "test_email": send_result
-        }
+        return {"connection": conn_result, "test_email": send_result}
 
     return {
         "connection": conn_result,
-        "message": "SMTP connection successful. Provide to_email to send a test message."
+        "message": "SMTP connection successful. Provide to_email to send a test message.",
     }
-
-

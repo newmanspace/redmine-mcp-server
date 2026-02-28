@@ -52,6 +52,7 @@ from requests.exceptions import (
 from importlib.metadata import version, PackageNotFoundError
 
 from mcp.server.fastmcp import FastMCP
+
 # from .ads_reports import register_ads_tools
 from .core.file_manager import AttachmentFileManager
 
@@ -1892,98 +1893,100 @@ async def cleanup_attachment_files() -> Dict[str, Any]:
         return {"error": f"An error occurred during cleanup: {str(e)}"}
 
 
-
-
 @mcp.tool()
 @mcp.tool()
 async def get_project_daily_stats(
-    project_id: int,
-    date: Optional[str] = None,
-    compare_with: Optional[str] = None
+    project_id: int, date: Optional[str] = None, compare_with: Optional[str] = None
 ) -> Dict[str, Any]:
     """Get project daily statistics with time-series comparison. Uses PostgreSQL warehouse, 97% lower token consumption."""
     from datetime import timedelta
     from .redmine_warehouse import DataWarehouse
     import requests
-    
+
     if not redmine:
         return {"error": "Redmine client not initialized."}
-    
+
     try:
         warehouse = DataWarehouse()
-        
+
         # Parse date
         from datetime import date as date_class
-        query_date = datetime.strptime(date, '%Y-%m-%d').date() if date else date_class.today()
-        
+
+        query_date = (
+            datetime.strptime(date, "%Y-%m-%d").date() if date else date_class.today()
+        )
+
         # Check if today data exists
         existing_data = warehouse.get_issues_snapshot(project_id, query_date)
-        
+
         if not existing_data:
             # First query, sync latest data
             logger.info(f"No snapshot for {query_date}, syncing from Redmine API...")
-            
+
             api_url = f"{REDMINE_URL}/issues.json"
             headers = {"X-Redmine-API-Key": REDMINE_API_KEY}
-            
+
             # Paginate to get all issues
             all_issues = []
             offset = 0
             limit = 100
-            
+
             while True:
                 resp = requests.get(
                     api_url,
                     headers=headers,
-                    params={'project_id': project_id, 'limit': limit, 'offset': offset},
-                    timeout=30
+                    params={"project_id": project_id, "limit": limit, "offset": offset},
+                    timeout=30,
                 )
                 data = resp.json()
-                issues = data.get('issues', [])
+                issues = data.get("issues", [])
                 all_issues.extend(issues)
-                
+
                 if len(issues) < limit:
                     break
-                
+
                 offset += limit
                 logger.info(f"Fetched {len(all_issues)} issues...")
-            
+
             # Sync to warehouse
             yesterday = query_date - timedelta(days=1)
             previous_issues = warehouse.get_issues_snapshot(project_id, yesterday)
-            previous_map = {i['issue_id']: i for i in previous_issues}
-            warehouse.upsert_issues_batch(project_id, all_issues, query_date, previous_map)
+            previous_map = {i["issue_id"]: i for i in previous_issues}
+            warehouse.upsert_issues_batch(
+                project_id, all_issues, query_date, previous_map
+            )
             logger.info(f"Synced {len(all_issues)} issues to warehouse")
-        
+
         # Get statistics from warehouse
         stats = warehouse.get_project_daily_stats(project_id, query_date)
-        
+
         # Get high priority issues
-        high_priority = warehouse.get_high_priority_issues(project_id, query_date, limit=20)
-        stats['high_priority_count'] = len(high_priority)
-        stats['high_priority_issues'] = [
-            {
-                **issue,
-                'url': f"{REDMINE_URL}/issues/{issue['issue_id']}"
-            }
+        high_priority = warehouse.get_high_priority_issues(
+            project_id, query_date, limit=20
+        )
+        stats["high_priority_count"] = len(high_priority)
+        stats["high_priority_issues"] = [
+            {**issue, "url": f"{REDMINE_URL}/issues/{issue['issue_id']}"}
             for issue in high_priority
         ]
-        
+
         # Get assignee workload
-        stats['top_assignees'] = warehouse.get_top_assignees(project_id, query_date, limit=10)
-        
+        stats["top_assignees"] = warehouse.get_top_assignees(
+            project_id, query_date, limit=10
+        )
+
         # Add comparison data
-        if compare_with == 'yesterday':
+        if compare_with == "yesterday":
             yesterday = query_date - timedelta(days=1)
             yday_stats = warehouse.get_project_daily_stats(project_id, yesterday)
-            stats['yesterday_new'] = yday_stats.get('today_new', 0)
-            stats['yesterday_closed'] = yday_stats.get('today_closed', 0)
-            stats['change_new'] = stats['today_new'] - stats['yesterday_new']
-            stats['change_closed'] = stats['today_closed'] - stats['yesterday_closed']
-        
-        stats['from_cache'] = True
+            stats["yesterday_new"] = yday_stats.get("today_new", 0)
+            stats["yesterday_closed"] = yday_stats.get("today_closed", 0)
+            stats["change_new"] = stats["today_new"] - stats["yesterday_new"]
+            stats["change_closed"] = stats["today_closed"] - stats["yesterday_closed"]
+
+        stats["from_cache"] = True
         return stats
-        
+
     except Exception as e:
         logger.error(f"Failed to get stats: {e}")
         return {"error": f"Failed to get stats: {str(e)}"}
@@ -1991,12 +1994,13 @@ async def get_project_daily_stats(
 
 # ========== Subscription Management Tools ==========
 
+
 @mcp.tool()
 async def subscribe_project(
     project_id: int,
     frequency: str = "daily",
     level: str = "brief",
-    push_time: Optional[str] = None
+    push_time: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Subscribe to project report
@@ -2011,16 +2015,16 @@ async def subscribe_project(
         Subscription result
     """
     from .subscriptions import get_subscription_manager
-    
+
     # Get current user ID (from context or default)
     # TODO: Implement user context retrieval
     user_id = "default_user"
-    
+
     # Determine push channel and ID
     # TODO: Auto-detect based on current session channel
     channel = "dingtalk"
     channel_id = "default"
-    
+
     manager = get_subscription_manager()
     result = manager.subscribe(
         user_id=user_id,
@@ -2029,16 +2033,14 @@ async def subscribe_project(
         channel_id=channel_id,
         frequency=frequency,
         level=level,
-        push_time=push_time
+        push_time=push_time,
     )
-    
+
     return result
 
 
 @mcp.tool()
-async def unsubscribe_project(
-    project_id: Optional[int] = None
-) -> Dict[str, Any]:
+async def unsubscribe_project(project_id: Optional[int] = None) -> Dict[str, Any]:
     """
     Unsubscribe from project
 
@@ -2049,10 +2051,10 @@ async def unsubscribe_project(
         Unsubscription result
     """
     from .subscriptions import get_subscription_manager
-    
+
     user_id = "default_user"
     manager = get_subscription_manager()
-    
+
     return manager.unsubscribe(user_id=user_id, project_id=project_id)
 
 
@@ -2065,10 +2067,10 @@ async def list_my_subscriptions() -> List[Dict[str, Any]]:
         Subscription list
     """
     from .subscriptions import get_subscription_manager
-    
+
     user_id = "default_user"
     manager = get_subscription_manager()
-    
+
     return manager.get_user_subscriptions(user_id)
 
 
@@ -2081,30 +2083,29 @@ async def get_subscription_stats() -> Dict[str, Any]:
         Statistics data
     """
     from .subscriptions import get_subscription_manager
-    
+
     manager = get_subscription_manager()
     return manager.get_stats()
 
 
 @mcp.tool()
 async def generate_subscription_report(
-    project_id: int,
-    level: str = "brief"
+    project_id: int, level: str = "brief"
 ) -> Dict[str, Any]:
     """
     Generate project subscription report (manual trigger)
-    
+
     Args:
         project_id: Project ID
         level: Report level (brief/detailed)
-    
+
     Returns:
         Report data
     """
     from .subscription_reporter import get_reporter
-    
+
     reporter = get_reporter()
-    
+
     if level == "detailed":
         return reporter.generate_detailed_report(project_id)
     else:
@@ -2112,23 +2113,21 @@ async def generate_subscription_report(
 
 
 @mcp.tool()
-async def trigger_full_sync(
-    project_id: Optional[int] = None
-) -> Dict[str, Any]:
+async def trigger_full_sync(project_id: Optional[int] = None) -> Dict[str, Any]:
     """
     Trigger full data sync for warehouse (manual)
-    
+
     Args:
         project_id: Specific project ID (optional, sync all if None)
-    
+
     Returns:
         Sync result
     """
     from .redmine_scheduler import get_scheduler
     from .redmine_warehouse import DataWarehouse
-    
+
     scheduler = get_scheduler()
-    
+
     if project_id:
         # Sync single project
         try:
@@ -2138,36 +2137,37 @@ async def trigger_full_sync(
                 "success": True,
                 "project_id": project_id,
                 "synced_issues": count,
-                "message": f"Full sync completed for project {project_id}"
+                "message": f"Full sync completed for project {project_id}",
             }
         except Exception as e:
             return {
                 "success": False,
                 "error": str(e),
-                "message": f"Failed to sync project {project_id}"
+                "message": f"Failed to sync project {project_id}",
             }
     else:
         # Sync all subscribed projects
         try:
             # Run in background to avoid timeout
             import threading
+
             def run_sync():
                 scheduler._sync_all_projects(full=True)
-            
+
             thread = threading.Thread(target=run_sync, daemon=True)
             thread.start()
-            
+
             return {
                 "success": True,
                 "message": f"Full sync started for {len(scheduler.project_ids)} projects",
                 "projects": scheduler.project_ids,
-                "note": "Sync running in background, check logs for progress"
+                "note": "Sync running in background, check logs for progress",
             }
         except Exception as e:
             return {
                 "success": False,
                 "error": str(e),
-                "message": "Failed to start full sync"
+                "message": "Failed to start full sync",
             }
 
 
@@ -2176,40 +2176,38 @@ async def trigger_progressive_sync() -> Dict[str, Any]:
     """
     Trigger progressive weekly sync (manual)
     Syncs one week of data for each project per run
-    
+
     Returns:
         Sync result
     """
     from .redmine_scheduler import get_scheduler
-    
+
     scheduler = get_scheduler()
-    
+
     if not scheduler:
-        return {
-            "success": False,
-            "error": "Scheduler not initialized"
-        }
-    
+        return {"success": False, "error": "Scheduler not initialized"}
+
     try:
         # Run in background
         import threading
+
         def run_sync():
             scheduler._sync_all_projects_progressive()
-        
+
         thread = threading.Thread(target=run_sync, daemon=True)
         thread.start()
-        
+
         return {
             "success": True,
             "message": f"Progressive weekly sync started for {len(scheduler.project_ids)} projects",
             "projects": scheduler.project_ids,
-            "note": "Each run syncs one week of data. Multiple runs needed to complete full history."
+            "note": "Each run syncs one week of data. Multiple runs needed to complete full history.",
         }
     except Exception as e:
         return {
             "success": False,
             "error": str(e),
-            "message": "Failed to start progressive sync"
+            "message": "Failed to start progressive sync",
         }
 
 
@@ -2217,20 +2215,17 @@ async def trigger_progressive_sync() -> Dict[str, Any]:
 async def get_sync_progress() -> Dict[str, Any]:
     """
     Get sync progress for all subscribed projects
-    
+
     Returns:
         Sync progress status
     """
     from .redmine_scheduler import get_scheduler
-    
+
     scheduler = get_scheduler()
-    
+
     if not scheduler:
-        return {
-            "success": False,
-            "error": "Scheduler not initialized"
-        }
-    
+        return {"success": False, "error": "Scheduler not initialized"}
+
     progress_info = {}
     for project_id in scheduler.project_ids:
         if project_id in scheduler.project_sync_progress:
@@ -2239,40 +2234,38 @@ async def get_sync_progress() -> Dict[str, Any]:
             progress_info[project_id] = {
                 "last_synced_week": last_synced.isoformat(),
                 "days_remaining": max(0, days_synced),
-                "status": "in_progress" if days_synced > 7 else "completed"
+                "status": "in_progress" if days_synced > 7 else "completed",
             }
         else:
-            progress_info[project_id] = {
-                "status": "not_started"
-            }
-    
+            progress_info[project_id] = {"status": "not_started"}
+
     return {
         "success": True,
         "projects": len(scheduler.project_ids),
         "progress": progress_info,
-        "sync_count": scheduler._sync_count
+        "sync_count": scheduler._sync_count,
     }
 
 
 @mcp.tool()
 async def analyze_dev_tester_workload(
-    project_id: Optional[int] = None
+    project_id: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     Analyze developer and tester workload based on issue resolution flow
-    
+
     Developer: Person who changes status to "已解决"
     Tester: Person assigned when status changes to "已解决"
-    
+
     Args:
         project_id: Specific project ID (optional, analyze all subscribed if None)
-    
+
     Returns:
         Analysis report
     """
     from .dev_test_analyzer import DevTestAnalyzer, analyze_project, analyze_projects
     from .redmine_scheduler import get_scheduler
-    
+
     try:
         if project_id:
             # Analyze single project
@@ -2281,95 +2274,85 @@ async def analyze_dev_tester_workload(
             # Analyze all subscribed projects
             scheduler = get_scheduler()
             if not scheduler:
-                return {
-                    "success": False,
-                    "error": "Scheduler not initialized"
-                }
-            
+                return {"success": False, "error": "Scheduler not initialized"}
+
             project_ids = scheduler.project_ids
             analysis = analyze_projects(project_ids)
-        
+
         # Generate report
         analyzer = DevTestAnalyzer()
         report = analyzer.generate_report(analysis)
-        
-        return {
-            "success": True,
-            "analysis": analysis,
-            "report": report
-        }
-    
+
+        return {"success": True, "analysis": analysis, "report": report}
+
     except Exception as e:
         return {
             "success": False,
             "error": str(e),
-            "message": "Failed to analyze dev/tester workload"
+            "message": "Failed to analyze dev/tester workload",
         }
 
 
 @mcp.tool()
 async def backfill_historical_data(
-    project_id: Optional[int] = None,
-    from_date: Optional[str] = None
+    project_id: Optional[int] = None, from_date: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Backfill historical daily snapshots from Redmine journals
-    
+
     Args:
         project_id: Specific project ID (optional, backfill all if None)
         from_date: Start date in YYYY-MM-DD format (optional)
-    
+
     Returns:
         Backfill result
     """
     from .backfill_sync import BackfillSync, backfill_all_projects
     from .redmine_scheduler import get_scheduler
-    
+
     try:
         if project_id:
             # Backfill single project
             sync = BackfillSync()
-            start_date = datetime.strptime(from_date, '%Y-%m-%d') if from_date else None
+            start_date = datetime.strptime(from_date, "%Y-%m-%d") if from_date else None
             sync.backfill_project(project_id, start_date)
             sync.close()
-            
+
             return {
                 "success": True,
                 "message": f"Backfill completed for project {project_id}",
-                "project_id": project_id
+                "project_id": project_id,
             }
         else:
             # Backfill all subscribed projects
             scheduler = get_scheduler()
             if not scheduler:
-                return {
-                    "success": False,
-                    "error": "Scheduler not initialized"
-                }
-            
+                return {"success": False, "error": "Scheduler not initialized"}
+
             project_ids = scheduler.project_ids
-            start_date = datetime.strptime(from_date, '%Y-%m-%d') if from_date else None
-            
+            start_date = datetime.strptime(from_date, "%Y-%m-%d") if from_date else None
+
             # Run in background to avoid timeout
             import threading
+
             def run_backfill():
                 backfill_all_projects(project_ids)
-            
+
             thread = threading.Thread(target=run_backfill, daemon=True)
             thread.start()
-            
+
             return {
                 "success": True,
                 "message": f"Backfill started for {len(project_ids)} projects",
                 "projects": project_ids,
-                "note": "Backfill running in background, check logs for progress"
+                "note": "Backfill running in background, check logs for progress",
             }
-    
+
     except Exception as e:
         return {
             "success": False,
             "error": str(e),
-            "message": "Failed to backfill historical data"
+            "message": "Failed to backfill historical data",
         }
 
 
@@ -2377,75 +2360,87 @@ async def backfill_historical_data(
 async def analyze_issue_contributors(issue_id: int) -> Dict[str, Any]:
     """
     分析 Issue 的贡献者（按角色分类）
-    
+
     从数仓中获取 Issue 的所有贡献者，按角色优先级排序：
     - 管理人员 > 实施人员 > 开发人员 > 测试人员
-    
+
     Args:
         issue_id: Issue ID
-    
+
     Returns:
         贡献者列表和汇总统计
     """
     from .redmine_warehouse import DataWarehouse
     from .dev_test_analyzer import DevTestAnalyzer
-    
+
     try:
         warehouse = DataWarehouse()
-        
+
         # 获取贡献者
         contributors = warehouse.get_issue_contributors(issue_id)
-        
+
         # 获取汇总
         summary = warehouse.get_issue_contributor_summary(issue_id)
-        
+
         if not contributors:
             # 如果数仓中没有，尝试从 Redmine 实时分析
-            logger.info(f"No contributors in warehouse, analyzing issue {issue_id} from Redmine...")
-            
+            logger.info(
+                f"No contributors in warehouse, analyzing issue {issue_id} from Redmine..."
+            )
+
             if redmine:
                 analyzer = DevTestAnalyzer()
                 try:
                     # Get issue details first to get project_id
                     issue = redmine.issue.get(issue_id)
-                    project_id = issue.project.get('id') if hasattr(issue, 'project') else None
-                    
+                    project_id = (
+                        issue.project.get("id") if hasattr(issue, "project") else None
+                    )
+
                     if project_id:
                         # Use REST API directly to get journals (more reliable)
                         journals = analyzer._get_issue_journals(issue_id)
-                        
+
                         # Extract contributors from journals
                         if journals:
-                            contributors_data = analyzer.extract_contributors_from_journals(
-                                journals, issue_id, project_id
+                            contributors_data = (
+                                analyzer.extract_contributors_from_journals(
+                                    journals, issue_id, project_id
+                                )
                             )
-                            
+
                             # Save to warehouse
                             if contributors_data:
-                                warehouse.upsert_issue_contributors(issue_id, project_id, contributors_data)
-                                contributors = warehouse.get_issue_contributors(issue_id)
-                                summary = warehouse.get_issue_contributor_summary(issue_id)
+                                warehouse.upsert_issue_contributors(
+                                    issue_id, project_id, contributors_data
+                                )
+                                contributors = warehouse.get_issue_contributors(
+                                    issue_id
+                                )
+                                summary = warehouse.get_issue_contributor_summary(
+                                    issue_id
+                                )
                 except Exception as e:
                     logger.error(f"Failed to analyze from Redmine: {e}")
-            
+
             if not contributors:
                 warehouse.close()
                 return {
-                    "issue_id": issue_id, 
+                    "issue_id": issue_id,
                     "message": "Contributors not yet analyzed. Trigger a sync to populate data.",
                     "contributors": [],
-                    "summary": None
+                    "summary": None,
                 }
-        
+
         warehouse.close()
-        
+
         return {
             "issue_id": issue_id,
             "contributors": contributors,
             "summary": summary,
-            "from_cache": True
+            "from_cache": True,
         }
-        
+
     except Exception as e:
         logger.error(f"Failed to analyze contributors: {e}")
         return {"error": f"Failed to analyze contributors: {str(e)}"}
@@ -2453,59 +2448,66 @@ async def analyze_issue_contributors(issue_id: int) -> Dict[str, Any]:
 
 @mcp.tool()
 async def get_project_role_distribution(
-    project_id: int,
-    date: Optional[str] = None
+    project_id: int, date: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Get project role distribution
-    
+
     Args:
         project_id: project_id
         date: 日期（YYYY-MM-DD），默认今天
-    
+
     Returns:
         各角色的人员数量
     """
     from datetime import date as date_class
     from .redmine_warehouse import DataWarehouse
     from .dev_test_analyzer import DevTestAnalyzer
-    
+
     try:
         warehouse = DataWarehouse()
-        query_date = datetime.strptime(date, '%Y-%m-%d').date() if date else date_class.today()
-        
+        query_date = (
+            datetime.strptime(date, "%Y-%m-%d").date() if date else date_class.today()
+        )
+
         # 查询数仓
         distribution = warehouse.get_project_role_distribution(project_id, query_date)
-        
+
         if not distribution:
             # 如果没有，触发计算
-            logger.info(f"No role distribution for {project_id} on {query_date}, calculating...")
-            
+            logger.info(
+                f"No role distribution for {project_id} on {query_date}, calculating..."
+            )
+
             if redmine:
                 analyzer = DevTestAnalyzer()
                 try:
                     # Get project members and their roles
                     roles_data = analyzer.get_project_member_roles(project_id)
-                    
+
                     if roles_data:
                         # Save to warehouse
                         warehouse.upsert_user_project_roles(project_id, roles_data)
-                        warehouse.refresh_project_role_distribution(project_id, query_date)
-                        distribution = warehouse.get_project_role_distribution(project_id, query_date)
+                        warehouse.refresh_project_role_distribution(
+                            project_id, query_date
+                        )
+                        distribution = warehouse.get_project_role_distribution(
+                            project_id, query_date
+                        )
                 except Exception as e:
                     logger.error(f"Failed to calculate from Redmine: {e}")
-            
+
             if not distribution:
                 warehouse.close()
                 return {
-                    "project_id": project_id, 
-                    "date": query_date.isoformat(), 
-                    "message": "Role distribution not yet calculated. Trigger a sync to populate data."
+                    "project_id": project_id,
+                    "date": query_date.isoformat(),
+                    "message": "Role distribution not yet calculated. Trigger a sync to populate data.",
                 }
-        
+
         warehouse.close()
         return dict(distribution)
-        
+
     except Exception as e:
         logger.error(f"Failed to get role distribution: {e}")
         return {"error": f"Failed to get role distribution: {str(e)}"}
@@ -2513,56 +2515,54 @@ async def get_project_role_distribution(
 
 @mcp.tool()
 async def get_user_workload(
-    user_id: int,
-    year_month: Optional[str] = None,
-    project_id: Optional[int] = None
+    user_id: int, year_month: Optional[str] = None, project_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """
     Get user workload statistics
-    
+
     Args:
         user_id: user_id
         year_month: 年月（YYYY-MM），默认本月
         project_id: project_id(optional)
-    
+
     Returns:
         工作量统计信息
     """
     from datetime import datetime
     from .redmine_warehouse import DataWarehouse
-    
+
     if not year_month:
-        year_month = datetime.now().strftime('%Y-%m')
-    
+        year_month = datetime.now().strftime("%Y-%m")
+
     try:
         warehouse = DataWarehouse()
-        
+
         # 查询数仓
         workload_data = warehouse.get_user_workload(user_id, year_month, project_id)
-        
+
         warehouse.close()
-        
+
         if workload_data:
             if project_id:
                 return {
                     "user_id": user_id,
                     "year_month": year_month,
                     "project_id": project_id,
-                    "workload": workload_data[0] if workload_data else None
+                    "workload": workload_data[0] if workload_data else None,
                 }
             else:
                 return {
                     "user_id": user_id,
                     "year_month": year_month,
-                    "projects": workload_data
+                    "projects": workload_data,
                 }
-        
+
         return {
-            "user_id": user_id, 
-            "year_month": year_month, 
-            "message": "No workload data yet. Contributor analysis needs to be run first."
+            "user_id": user_id,
+            "year_month": year_month,
+            "message": "No workload data yet. Contributor analysis needs to be run first.",
         }
-        
+
     except Exception as e:
         logger.error(f"Failed to get workload: {e}")
         return {"error": f"Failed to get workload: {str(e)}"}
@@ -2570,61 +2570,66 @@ async def get_user_workload(
 
 @mcp.tool()
 async def trigger_contributor_sync(
-    project_id: Optional[int] = None,
-    issue_ids: Optional[List[int]] = None
+    project_id: Optional[int] = None, issue_ids: Optional[List[int]] = None
 ) -> Dict[str, Any]:
     """
     触发贡献者分析同步
-    
+
     Args:
         project_id: project_id(optional, analyze entire project)
         issue_ids: Issue ID 列表（可选，分析特定 Issue）
-    
+
     Returns:
         同步结果
     """
     from .dev_test_analyzer import DevTestAnalyzer
     from .redmine_warehouse import DataWarehouse
-    
+
     try:
         if not redmine:
             return {"error": "Redmine client not initialized"}
-        
+
         analyzer = DevTestAnalyzer()
         warehouse = DataWarehouse()
         results = {"analyzed_issues": [], "errors": []}
-        
+
         if issue_ids:
             # Analyze specific issues
             for iid in issue_ids:
                 try:
-                    issue = redmine.issue.get(iid, include='journals')
-                    proj_id = issue.project.get('id') if hasattr(issue, 'project') else None
-                    
-                    if proj_id and hasattr(issue, 'journals'):
+                    issue = redmine.issue.get(iid, include="journals")
+                    proj_id = (
+                        issue.project.get("id") if hasattr(issue, "project") else None
+                    )
+
+                    if proj_id and hasattr(issue, "journals"):
                         contributors = analyzer.extract_contributors_from_journals(
                             issue.journals, iid, proj_id
                         )
                         if contributors:
-                            warehouse.upsert_issue_contributors(iid, proj_id, contributors)
+                            warehouse.upsert_issue_contributors(
+                                iid, proj_id, contributors
+                            )
                             results["analyzed_issues"].append(iid)
                 except Exception as e:
                     results["errors"].append({"issue_id": iid, "error": str(e)})
-        
+
         elif project_id:
             # Analyze all issues in project
             logger.info(f"Starting contributor analysis for project {project_id}...")
-            
+
             # Get all issues for the project
             offset = 0
             limit = 100
             total_analyzed = 0
-            
+
             while True:
-                issues = redmine.issue.filter(project_id=project_id, limit=limit, offset=offset)
+                issues = redmine.issue.filter(
+                    project_id=project_id, limit=limit, offset=offset
+                )
                 if not issues:
                     break
-                
+
                 for issue in issues:
                     try:
                         # Use REST API directly to get journals (more reliable)
@@ -2634,30 +2639,33 @@ async def trigger_contributor_sync(
                                 journals, issue.id, project_id
                             )
                             if contributors:
-                                warehouse.upsert_issue_contributors(issue.id, project_id, contributors)
+                                warehouse.upsert_issue_contributors(
+                                    issue.id, project_id, contributors
+                                )
                                 total_analyzed += 1
                     except Exception as e:
                         logger.error(f"Failed to analyze issue {issue.id}: {e}")
-                
+
                 offset += limit
                 if len(issues) < limit:
                     break
-            
+
             # Refresh project role distribution
             from datetime import date as date_class
+
             warehouse.refresh_project_role_distribution(project_id, date_class.today())
-            
+
             results["project_id"] = project_id
             results["total_analyzed"] = total_analyzed
-        
+
         warehouse.close()
-        
+
         return {
             "success": True,
             "message": f"Contributor analysis completed",
-            "results": results
+            "results": results,
         }
-    
+
     except Exception as e:
         logger.error(f"Failed to trigger contributor sync: {e}")
         return {"error": f"Failed to trigger contributor sync: {str(e)}"}
@@ -2674,14 +2682,14 @@ def get_version() -> str:
 def get_health_status() -> Dict[str, Any]:
     """
     Get health check status
-    
+
     Returns:
         Health status with version and timestamp
     """
     return {
         "status": "healthy",
         "version": get_version(),
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
     }
 
 

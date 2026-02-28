@@ -16,26 +16,35 @@ logging.basicConfig(
 
 # Import MCP from new location
 from .mcp.server import mcp  # noqa: E402
+
 # Scheduler imports
 try:
-    from .scheduler.tasks import init_scheduler as init_sync_scheduler, shutdown_scheduler as shutdown_sync_scheduler
+    from .scheduler.tasks import (
+        init_scheduler as init_sync_scheduler,
+        shutdown_scheduler as shutdown_sync_scheduler,
+    )
 except ImportError:
     init_sync_scheduler = None
     shutdown_sync_scheduler = None  # noqa: E402
 
 try:
-    from .scheduler.subscription_scheduler import init_subscription_scheduler, shutdown_subscription_scheduler
+    from .scheduler.subscription_scheduler import (
+        init_subscription_scheduler,
+        shutdown_subscription_scheduler,
+    )
 except ImportError:
     init_subscription_scheduler = None
     shutdown_subscription_scheduler = None  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
+
 def get_version() -> str:
     try:
         return version("redmine-mcp-server")
     except PackageNotFoundError:
         return "dev"
+
 
 # Apply settings at module level
 mcp.settings.host = os.getenv("SERVER_HOST", "0.0.0.0")
@@ -44,6 +53,7 @@ mcp.settings.stateless_http = True
 
 # Export the Starlette/FastAPI app for testing and external use
 app = mcp.streamable_http_app()
+
 
 def main():
     """Main entry point for the console script."""
@@ -64,6 +74,7 @@ def main():
         # 1. Initialize subscription manager
         try:
             from .dws.services import subscription_service
+
             subscription_service.init_subscription_manager()
             logger.info("Subscription manager initialized")
         except Exception as e:
@@ -94,19 +105,20 @@ def main():
 
     mcp.run(transport=transport)
 
+
 if __name__ == "__main__":
     import signal
 
     def signal_handler(sig, frame):
         """Handle shutdown signal"""
         logger.info("Shutting down...")
-        
+
         # Shutdown schedulers
         if shutdown_subscription_scheduler:
             shutdown_subscription_scheduler()
         if shutdown_sync_scheduler:
             shutdown_sync_scheduler()
-        
+
         sys.exit(0)
 
     signal.signal(signal.SIGINT, signal_handler)
