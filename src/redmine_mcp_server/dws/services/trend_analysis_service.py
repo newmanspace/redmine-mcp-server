@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-趋势分析服务
+trendanalysisservice
 
-分析项目 Issue 的趋势变化，支持日报/周报/月报
+analysisproject Issue 的trend变化，support日报/周报/月报
 """
 
 import os
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class TrendAnalysisService:
-    """趋势分析服务"""
+    """trendanalysisservice"""
 
     def __init__(self):
         self.redmine_url = os.getenv('REDMINE_URL')
@@ -37,20 +37,20 @@ class TrendAnalysisService:
         days: int = 7
     ) -> List[Dict[str, Any]]:
         """
-        获取历史 Issue 数据（用于趋势分析）
+        get历史 Issue data（用于trendanalysis）
 
         Args:
-            project_id: 项目 ID
-            days: 分析天数
+            project_id: project ID
+            days: analysis天数
 
         Returns:
-            Issue 列表
+            Issue list
         """
         all_issues = []
         offset = 0
         limit = 100
 
-        # 获取所有 Issue（包含历史记录）
+        # get所有 Issue（包含历史记录）
         while True:
             try:
                 data = self.redmine_get("issues.json", {
@@ -79,23 +79,23 @@ class TrendAnalysisService:
         days: int = 7
     ) -> Dict[str, Any]:
         """
-        分析每日趋势（过去 N 天）
+        analysis每日trend（过去 N 天）
 
         Args:
-            project_id: 项目 ID
-            days: 分析天数
+            project_id: project ID
+            days: analysis天数
 
         Returns:
-            趋势分析结果
+            trendanalysisresult
         """
         issues = self.get_historical_issues(project_id, days)
 
-        # 按日期统计
+        # 按datestatistics
         daily_stats = {}
         end_date = datetime.now().date()
         start_date = end_date - timedelta(days=days)
 
-        # 初始化每日统计
+        # initialize每日statistics
         current = start_date
         while current <= end_date:
             date_str = current.isoformat()
@@ -108,13 +108,13 @@ class TrendAnalysisService:
             }
             current += timedelta(days=1)
 
-        # 统计每日新增和关闭
+        # statistics每日新增和shutdown
         for issue in issues:
             created_on = issue.get('created_on', '')
             closed_on = issue.get('closed_on', '')
             status = issue.get('status', {}).get('name', '')
 
-            # 统计新增
+            # statistics新增
             if created_on:
                 try:
                     created_date = datetime.fromisoformat(created_on.replace('Z', '+00:00')).date()
@@ -125,8 +125,8 @@ class TrendAnalysisService:
                 except:
                     pass
 
-            # 统计关闭
-            if closed_on and status == '已关闭':
+            # statisticsshutdown
+            if closed_on and status == '已shutdown':
                 try:
                     closed_date = datetime.fromisoformat(closed_on.replace('Z', '+00:00')).date()
                     if start_date <= closed_date <= end_date:
@@ -136,7 +136,7 @@ class TrendAnalysisService:
                 except:
                     pass
 
-        # 计算累计值
+        # 计算累计value
         total_open = 0
         total_closed = 0
         for date_str in sorted(daily_stats.keys()):
@@ -146,10 +146,10 @@ class TrendAnalysisService:
             stats['total_open'] = total_open
             stats['total_closed'] = total_closed
 
-        # 转换为列表
+        # 转换为list
         trend_data = [daily_stats[k] for k in sorted(daily_stats.keys())]
 
-        # 计算趋势指标
+        # 计算trend指标
         if len(trend_data) >= 2:
             latest = trend_data[-1]
             previous = trend_data[-2]
@@ -177,23 +177,23 @@ class TrendAnalysisService:
         weeks: int = 4
     ) -> Dict[str, Any]:
         """
-        分析每周趋势（过去 N 周）
+        analysis每周trend（过去 N 周）
 
         Args:
-            project_id: 项目 ID
-            weeks: 分析周数
+            project_id: project ID
+            weeks: analysis周数
 
         Returns:
-            趋势分析结果
+            trendanalysisresult
         """
         issues = self.get_historical_issues(project_id, weeks * 7)
 
-        # 按周统计
+        # 按周statistics
         weekly_stats = {}
         end_date = datetime.now().date()
         start_date = end_date - timedelta(weeks=weeks)
 
-        # 初始化每周统计
+        # initialize每周statistics
         current = start_date
         week_num = 1
         while current < end_date:
@@ -215,7 +215,7 @@ class TrendAnalysisService:
             current += timedelta(days=7)
             week_num += 1
 
-        # 统计每周数据
+        # statistics每周data
         for issue in issues:
             created_on = issue.get('created_on', '')
             closed_on = issue.get('closed_on', '')
@@ -233,7 +233,7 @@ class TrendAnalysisService:
                 except:
                     pass
 
-            if closed_on and status == '已关闭':
+            if closed_on and status == '已shutdown':
                 try:
                     closed_date = datetime.fromisoformat(closed_on.replace('Z', '+00:00')).date()
                     for week_key, stats in weekly_stats.items():
@@ -245,7 +245,7 @@ class TrendAnalysisService:
                 except:
                     pass
 
-        # 计算累计值
+        # 计算累计value
         total_open = 0
         total_closed = 0
         for week_key in sorted(weekly_stats.keys()):
@@ -255,10 +255,10 @@ class TrendAnalysisService:
             stats['total_open'] = total_open
             stats['total_closed'] = total_closed
 
-        # 转换为列表
+        # 转换为list
         trend_data = [weekly_stats[k] for k in sorted(weekly_stats.keys())]
 
-        # 计算趋势
+        # 计算trend
         if len(trend_data) >= 2:
             latest = trend_data[-1]
             previous = trend_data[-2]
@@ -284,18 +284,18 @@ class TrendAnalysisService:
         months: int = 6
     ) -> Dict[str, Any]:
         """
-        分析每月趋势（过去 N 月）
+        analysis每月trend（过去 N 月）
 
         Args:
-            project_id: 项目 ID
-            months: 分析月数
+            project_id: project ID
+            months: analysis月数
 
         Returns:
-            趋势分析结果
+            trendanalysisresult
         """
         issues = self.get_historical_issues(project_id, months * 30)
 
-        # 按月统计
+        # 按月statistics
         monthly_stats = {}
         now = datetime.now()
         
@@ -319,7 +319,7 @@ class TrendAnalysisService:
                 'total_closed': 0
             }
 
-        # 统计每月数据
+        # statistics每月data
         for issue in issues:
             created_on = issue.get('created_on', '')
             closed_on = issue.get('closed_on', '')
@@ -334,7 +334,7 @@ class TrendAnalysisService:
                 except:
                     pass
 
-            if closed_on and status == '已关闭':
+            if closed_on and status == '已shutdown':
                 try:
                     closed_date = datetime.fromisoformat(closed_on.replace('Z', '+00:00')).date()
                     month_key = closed_date.strftime("%Y-%m")
@@ -343,7 +343,7 @@ class TrendAnalysisService:
                 except:
                     pass
 
-        # 计算累计值
+        # 计算累计value
         total_open = 0
         total_closed = 0
         for month_key in sorted(monthly_stats.keys()):
@@ -353,10 +353,10 @@ class TrendAnalysisService:
             stats['total_open'] = total_open
             stats['total_closed'] = total_closed
 
-        # 转换为列表
+        # 转换为list
         trend_data = [monthly_stats[k] for k in sorted(monthly_stats.keys())]
 
-        # 计算趋势
+        # 计算trend
         if len(trend_data) >= 2:
             latest = trend_data[-1]
             previous = trend_data[-2]
@@ -379,13 +379,13 @@ class TrendAnalysisService:
         trend_data: List[Dict],
         period: str = 'daily'
     ) -> Dict[str, Any]:
-        """生成趋势摘要"""
+        """generatetrend摘要"""
         if not trend_data:
             return {}
 
         latest = trend_data[-1]
         
-        # 计算平均值
+        # 计算平均value
         avg_new = sum(d['new'] for d in trend_data) / len(trend_data)
         avg_closed = sum(d['closed'] for d in trend_data) / len(trend_data)
 
@@ -414,15 +414,15 @@ def analyze_project_trend(
     period: int = 7
 ) -> Dict[str, Any]:
     """
-    分析项目趋势
+    analysisprojecttrend
 
     Args:
-        project_id: 项目 ID
-        report_type: 报告类型 (daily/weekly/monthly)
-        period: 周期 (天数/周数/月数)
+        project_id: project ID
+        report_type: reportclass型 (daily/weekly/monthly)
+        period: period (天数/周数/月数)
 
     Returns:
-        趋势分析结果
+        trendanalysisresult
     """
     service = TrendAnalysisService()
 

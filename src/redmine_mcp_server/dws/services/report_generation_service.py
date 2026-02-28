@@ -59,28 +59,28 @@ class ReportGenerationService:
 
             # Basic statistics
             total = len(all_issues)
-            open_count = sum(1 for i in all_issues if i.get('status', {}).get('name') != '已关闭')
-            closed_count = sum(1 for i in all_issues if i.get('status', {}).get('name') == '已关闭')
+            open_count = sum(1 for i in all_issues if i.get('status', {}).get('name') != '已shutdown')
+            closed_count = sum(1 for i in all_issues if i.get('status', {}).get('name') == '已shutdown')
             
-            # 状态分布
+            # status分布
             by_status = {}
             for issue in all_issues:
                 status = issue.get('status', {}).get('name', 'Unknown')
                 by_status[status] = by_status.get(status, 0) + 1
             
-            # 优先级分布
+            # priority分布
             by_priority = {}
             for issue in all_issues:
                 priority = issue.get('priority', {}).get('name', '普通')
                 by_priority[priority] = by_priority.get(priority, 0) + 1
             
-            # 高优先级 Issue
+            # 高priority Issue
             high_priority = [
                 i for i in all_issues 
                 if i.get('priority', {}).get('name') in ['立刻', '紧急', '高']
             ][:10]
             
-            # 人员任务量
+            # 人员job量
             assignee_count = {}
             for issue in all_issues:
                 assigned_to = issue.get('assigned_to')
@@ -93,7 +93,7 @@ class ReportGenerationService:
                 for name, count in sorted(assignee_count.items(), key=lambda x: x[1], reverse=True)
             ][:10]
             
-            # 今日统计
+            # 今日statistics
             today = datetime.now().date()
             today_new = 0
             today_closed = 0
@@ -190,26 +190,26 @@ class ReportGenerationService:
         Generate weekly report
 
         Args:
-            project_id: 项目 ID
-            level: 报告级别
-            include_trend: 是否包含趋势
-            trend_weeks: 趋势分析周数
+            project_id: project ID
+            level: reportlevel
+            include_trend: 是否包含trend
+            trend_weeks: trendanalysis周数
 
         Returns:
-            周报数据
+            周报data
         """
         stats = self.get_project_stats(project_id)
         if not stats:
             return None
 
-        # 本周统计（过去 7 天）
+        # 本周statistics（过去 7 天）
         today = datetime.now().date()
         week_start = today - timedelta(days=6)
         
         week_new = 0
         week_closed = 0
         
-        # 重新获取 Issue 来计算本周数据
+        # 重新get Issue 来计算本周data
         all_issues = []
         offset = 0
         limit = 100
@@ -280,29 +280,29 @@ class ReportGenerationService:
         trend_months: int = 6
     ) -> Dict[str, Any]:
         """
-        生成月报
+        generate月报
 
         Args:
-            project_id: 项目 ID
-            level: 报告级别
-            include_trend: 是否包含趋势
-            trend_months: 趋势分析月数
+            project_id: project ID
+            level: reportlevel
+            include_trend: 是否包含trend
+            trend_months: trendanalysis月数
 
         Returns:
-            月报数据
+            月报data
         """
         stats = self.get_project_stats(project_id)
         if not stats:
             return None
 
-        # 本月统计
+        # 本月statistics
         today = datetime.now().date()
         month_start = today.replace(day=1)
         
         month_new = 0
         month_closed = 0
         
-        # 获取 Issue 计算本月数据
+        # get Issue 计算本月data
         all_issues = []
         offset = 0
         limit = 100
@@ -360,7 +360,7 @@ class ReportGenerationService:
             report['high_priority_issues'] = stats['high_priority_issues']
             report['top_assignees'] = stats['top_assignees']
             
-            # 月报添加更多分析
+            # 月报添加更多analysis
             if level == 'comprehensive':
                 # 计算完成率
                 if stats['total_issues'] > 0:
@@ -368,7 +368,7 @@ class ReportGenerationService:
                         stats['closed_issues'] / stats['total_issues'] * 100, 2
                     )
                 
-                # 计算平均解决时间（如果有数据）
+                # 计算平均解决time（如果有data）
                 report['avg_resolution_days'] = self._calculate_avg_resolution_time(all_issues)
 
         if level == 'comprehensive' and include_trend:
@@ -378,11 +378,11 @@ class ReportGenerationService:
         return report
 
     def _calculate_avg_resolution_time(self, issues: List[Dict]) -> Optional[float]:
-        """计算平均解决时间（天）"""
+        """计算平均解决time（天）"""
         resolution_times = []
         
         for issue in issues:
-            if issue.get('status', {}).get('name') == '已关闭':
+            if issue.get('status', {}).get('name') == '已shutdown':
                 created_on = issue.get('created_on', '')
                 closed_on = issue.get('closed_on', '')
                 
@@ -408,17 +408,17 @@ class ReportGenerationService:
         trend_period: int
     ) -> Dict[str, Any]:
         """
-        生成报告（统一入口）
+        generatereport（unifiedentry）
 
         Args:
-            project_id: 项目 ID
-            report_type: 报告类型 (daily/weekly/monthly)
-            report_level: 报告级别 (brief/detailed/comprehensive)
-            include_trend: 是否包含趋势
-            trend_period: 趋势周期
+            project_id: project ID
+            report_type: reportclass型 (daily/weekly/monthly)
+            report_level: reportlevel (brief/detailed/comprehensive)
+            include_trend: 是否包含trend
+            trend_period: trendperiod
 
         Returns:
-            报告数据
+            reportdata
         """
         if report_type == 'daily':
             return self.generate_daily_report(
@@ -445,7 +445,7 @@ def generate_project_report(
     include_trend: bool = True,
     trend_period: int = 7
 ) -> Dict[str, Any]:
-    """生成项目报告"""
+    """generateprojectreport"""
     service = ReportGenerationService()
     return service.generate_report(
         project_id, report_type, report_level, include_trend, trend_period

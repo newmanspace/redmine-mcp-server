@@ -1,7 +1,7 @@
 # /docker/redmine-mcp-server/src/redmine_mcp_server/warehouse.py
 """
-PostgreSQL 数据仓库 - 纯数据访问层
-只提供读写接口，不包含业务逻辑
+PostgreSQL datawarehouse - 纯data访问层
+只提供读写interface，不包含业务logic
 """
 
 import os
@@ -17,7 +17,7 @@ from psycopg2.extras import RealDictCursor
 logger = logging.getLogger(__name__)
 
 class DataWarehouse:
-    """Redmine PostgreSQL 数据仓库 - 数据访问层"""
+    """Redmine PostgreSQL datawarehouse - data访问层"""
     
     def __init__(self):
         self.db_host = os.getenv("WAREHOUSE_DB_HOST", "warehouse-db")
@@ -30,7 +30,7 @@ class DataWarehouse:
         self._init_pool()
     
     def _init_pool(self):
-        """初始化数据库连接池"""
+        """initializedatabaseconnection池"""
         try:
             self.connection_pool = pool.SimpleConnectionPool(
                 1, 10,
@@ -48,7 +48,7 @@ class DataWarehouse:
     
     @contextmanager
     def get_connection(self):
-        """从连接池获取连接"""
+        """从connection池getconnection"""
         if not self.connection_pool:
             self._init_pool()
         
@@ -67,7 +67,7 @@ class DataWarehouse:
     def upsert_issue(self, issue: Dict[str, Any], snapshot_date: date, 
                      is_new: bool = False, is_closed: bool = False, 
                      is_updated: bool = False):
-        """插入或更新单个 Issue 快照"""
+        """insert或update单个 Issue 快照"""
         with self.get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
@@ -107,7 +107,7 @@ class DataWarehouse:
                 ))
     
     def refresh_dws_project_daily_summary(self, project_id: int, snapshot_date: date):
-        """刷新项目每日汇总表"""
+        """刷新project每日汇总表"""
         with self.get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -117,7 +117,7 @@ class DataWarehouse:
     
     def upsert_issues_batch(self, project_id: int, issues: List[Dict[str, Any]], 
                             snapshot_date: date, previous_map: Dict[int, Dict]):
-        """批量插入或更新 Issue 快照"""
+        """批量insert或update Issue 快照"""
         with self.get_connection() as conn:
             with conn.cursor() as cur:
                 for issue in issues:
@@ -126,8 +126,8 @@ class DataWarehouse:
                     
                     is_new = issue_id not in previous_map
                     is_closed = (
-                        issue.get('status', {}).get('name') == '已关闭' and
-                        prev.get('status_name') != '已关闭'
+                        issue.get('status', {}).get('name') == '已shutdown' and
+                        prev.get('status_name') != '已shutdown'
                     )
                     is_updated = (
                         issue.get('updated_on', '')[:10] == snapshot_date.isoformat()
@@ -141,7 +141,7 @@ class DataWarehouse:
     # ========== Read Operations (MCP Tools only) ==========
     
     def get_issues_snapshot(self, project_id: int, snapshot_date: date) -> List[Dict]:
-        """获取指定日期的 Issue 快照"""
+        """get指定date的 Issue 快照"""
         with self.get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
@@ -152,7 +152,7 @@ class DataWarehouse:
                 return [dict(row) for row in cur.fetchall()]
     
     def get_project_daily_stats(self, project_id: int, snapshot_date: date) -> Dict[str, Any]:
-        """获取项目每日统计（从汇总表）"""
+        """getproject每日statistics（从汇总表）"""
         with self.get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
@@ -174,7 +174,7 @@ class DataWarehouse:
                             '新建': summary.get('status_new', 0),
                             '进行中': summary.get('status_in_progress', 0),
                             '已解决': summary.get('status_resolved', 0),
-                            '已关闭': summary.get('status_closed', 0),
+                            '已shutdown': summary.get('status_closed', 0),
                             '反馈': summary.get('status_feedback', 0)
                         },
                         'by_priority': {
@@ -201,7 +201,7 @@ class DataWarehouse:
     
     def get_high_priority_issues(self, project_id: int, snapshot_date: date, 
                                   limit: int = 20) -> List[Dict]:
-        """获取高优先级 Issue"""
+        """get高priority Issue"""
         with self.get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
@@ -224,14 +224,14 @@ class DataWarehouse:
     
     def get_top_assignees(self, project_id: int, snapshot_date: date, 
                           limit: int = 10) -> List[Dict]:
-        """获取人员任务量 TOP N"""
+        """get人员job量 TOP N"""
         with self.get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
                     SELECT 
                         assigned_to_name,
                         COUNT(*) as total,
-                        SUM(CASE WHEN status_name IN ('新建', '进行中', '测试中') THEN 1 ELSE 0 END) as in_progress,
+                        SUM(CASE WHEN status_name IN ('新建', '进行中', 'test中') THEN 1 ELSE 0 END) as in_progress,
                         SUM(CASE WHEN priority_name IN ('立刻', '紧急', '高') THEN 1 ELSE 0 END) as high_priority
                     FROM warehouse.dwd_issue_daily_snapshot
                     WHERE project_id = %s 
@@ -248,7 +248,7 @@ class DataWarehouse:
     
     def upsert_issue_contributors(self, issue_id: int, project_id: int, 
                                    contributors: List[Dict]):
-        """插入或更新 Issue 贡献者"""
+        """insert或update Issue 贡献者"""
         with self.get_connection() as conn:
             with conn.cursor() as cur:
                 for contrib in contributors:
@@ -279,7 +279,7 @@ class DataWarehouse:
                            (issue_id, project_id))
     
     def get_issue_contributors(self, issue_id: int) -> List[Dict]:
-        """获取 Issue 贡献者列表"""
+        """get Issue 贡献者list"""
         with self.get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
@@ -302,7 +302,7 @@ class DataWarehouse:
                 return [dict(row) for row in cur.fetchall()]
     
     def get_issue_contributor_summary(self, issue_id: int) -> Optional[Dict]:
-        """获取 Issue 贡献者汇总"""
+        """get Issue 贡献者汇总"""
         with self.get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
@@ -313,7 +313,7 @@ class DataWarehouse:
                 return dict(row) if row else None
     
     def upsert_user_project_roles(self, project_id: int, roles: List[Dict]):
-        """批量插入用户项目角色"""
+        """批量insertuserproject角色"""
         with self.get_connection() as conn:
             with conn.cursor() as cur:
                 for role in roles:
@@ -335,7 +335,7 @@ class DataWarehouse:
                     ))
     
     def get_user_project_role(self, project_id: int, user_id: int) -> Optional[Dict]:
-        """获取用户在项目中的角色"""
+        """getuser在project中的角色"""
         with self.get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
@@ -346,7 +346,7 @@ class DataWarehouse:
                 return dict(row) if row else None
     
     def get_project_roles(self, project_id: int) -> List[Dict]:
-        """获取项目所有用户角色"""
+        """getproject所有user角色"""
         with self.get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
@@ -357,7 +357,7 @@ class DataWarehouse:
                 return [dict(row) for row in cur.fetchall()]
     
     def refresh_dws_project_role_distribution(self, project_id: int, snapshot_date: date):
-        """刷新项目角色分布"""
+        """刷新project角色分布"""
         with self.get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -366,7 +366,7 @@ class DataWarehouse:
                 )
     
     def get_project_role_distribution(self, project_id: int, snapshot_date: date) -> Optional[Dict]:
-        """获取项目角色分布"""
+        """getproject角色分布"""
         with self.get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
@@ -378,7 +378,7 @@ class DataWarehouse:
     
     def upsert_user_workload(self, user_id: int, user_name: str, year_month: str,
                              project_id: int, workload: Dict):
-        """插入或更新用户工作量"""
+        """insert或updateuser工作量"""
         with self.get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
@@ -407,7 +407,7 @@ class DataWarehouse:
     
     def get_user_workload(self, user_id: int, year_month: str, 
                           project_id: Optional[int] = None) -> List[Dict]:
-        """获取用户工作量统计"""
+        """getuser工作量statistics"""
         with self.get_connection() as conn:
             with conn.cursor() as cur:
                 if project_id:
@@ -424,7 +424,7 @@ class DataWarehouse:
                 return [dict(row) for row in cur.fetchall()]
     
     def close(self):
-        """关闭连接池"""
+        """shutdownconnection池"""
         if self.connection_pool:
             self.connection_pool.closeall()
             logger.info("Database connection pool closed")

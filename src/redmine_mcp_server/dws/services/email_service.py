@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-邮件推送服务
+Email Push Service
 
-支持通过邮件发送订阅报告（多语言支持）
+Supports sending subscription reports via email (multi-language support).
 """
 
 import os
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class EmailPushService:
-    """邮件推送服务"""
+    """Email Push Service"""
 
     def __init__(self):
         self.smtp_server = os.getenv("EMAIL_SMTP_SERVER", "")
@@ -33,7 +33,7 @@ class EmailPushService:
         self._validate_config()
 
     def _validate_config(self):
-        """验证邮件配置"""
+        """validateemailconfiguration"""
         if not self.smtp_server:
             logger.warning("EMAIL_SMTP_SERVER not configured")
         if not self.smtp_user:
@@ -49,16 +49,16 @@ class EmailPushService:
         html: bool = False
     ) -> Dict[str, Any]:
         """
-        发送邮件
+        sendemail
 
         Args:
             to_email: 收件人邮箱
-            subject: 邮件主题
-            body: 邮件内容
-            html: 是否为 HTML 格式
+            subject: emailsubject
+            body: emailcontent
+            html: 是否为 html format
 
         Returns:
-            发送结果
+            sendresult
         """
         if not self._is_configured():
             return {
@@ -117,11 +117,11 @@ class EmailPushService:
             }
 
     def _is_configured(self) -> bool:
-        """检查邮件服务是否已正确配置"""
+        """checkemailservice是否已正确configuration"""
         return bool(self.smtp_server and self.smtp_user and self.smtp_password)
 
     def test_connection(self) -> Dict[str, Any]:
-        """测试邮件服务连接"""
+        """testemailserviceconnection"""
         if not self._is_configured():
             return {
                 "success": False,
@@ -156,7 +156,7 @@ _email_service: Optional[EmailPushService] = None
 
 
 def get_email_service() -> EmailPushService:
-    """获取邮件服务实例"""
+    """getemailserviceinstance"""
     global _email_service
     if _email_service is None:
         _email_service = EmailPushService()
@@ -212,7 +212,7 @@ def _generate_email_body(
     level: str = "brief",
     language: str = "zh_CN"
 ) -> str:
-    """Generate email HTML content (multi-language support)"""
+    """Generate email html content (multi-language support)"""
     stats = report.get('stats', {})
     report_type = report.get('type', 'daily')
     
@@ -249,23 +249,23 @@ def _generate_email_body(
     # 概览部分
     html += _generate_overview_section(stats, report, language)
     
-    # 状态分布
+    # status分布
     if stats.get('by_status'):
         html += _generate_status_section(stats['by_status'], language)
     
-    # 优先级分布
+    # priority分布
     if stats.get('by_priority'):
         html += _generate_priority_section(stats['by_priority'], language)
     
-    # 高优先级 Issue
+    # 高priority Issue
     if level in ['detailed', 'comprehensive'] and stats.get('high_priority_issues'):
         html += _generate_high_priority_section(stats['high_priority_issues'], language)
     
-    # 人员任务量
+    # 人员job量
     if level in ['detailed', 'comprehensive'] and stats.get('top_assignees'):
         html += _generate_assignees_section(stats['top_assignees'], language)
     
-    # 趋势分析
+    # trendanalysis
     if level == 'comprehensive' and report.get('trend_analysis'):
         html += _generate_trend_section(report['trend_analysis'], language)
     
@@ -287,23 +287,23 @@ def _generate_email_body(
 
 
 def _generate_overview_section(stats: Dict, report: Dict) -> str:
-    """生成概览部分"""
+    """generate概览部分"""
     report_type = report.get('type', 'daily')
     
-    # 根据报告类型显示不同的指标
+    # 根据reportclass型显示不同的指标
     if report_type == 'daily':
         metrics = [
             ('Issue 总数', stats.get('total_issues', 0)),
             ('今日新增', f"+{stats.get('today_new', 0)}"),
-            ('今日关闭', stats.get('today_closed', 0)),
-            ('未关闭', stats.get('open_issues', 0))
+            ('今日shutdown', stats.get('today_closed', 0)),
+            ('未shutdown', stats.get('open_issues', 0))
         ]
     elif report_type == 'weekly':
         weekly = report.get('weekly_summary', {})
         metrics = [
             ('Issue 总数', stats.get('total_issues', 0)),
             ('本周新增', weekly.get('week_new', 0)),
-            ('本周关闭', weekly.get('week_closed', 0)),
+            ('本周shutdown', weekly.get('week_closed', 0)),
             ('净变化', f"+{weekly.get('week_net_change', 0)}")
         ]
     else:  # monthly
@@ -311,7 +311,7 @@ def _generate_overview_section(stats: Dict, report: Dict) -> str:
         metrics = [
             ('Issue 总数', stats.get('total_issues', 0)),
             ('本月新增', monthly.get('month_new', 0)),
-            ('本月关闭', monthly.get('month_closed', 0)),
+            ('本月shutdown', monthly.get('month_closed', 0)),
             ('净变化', f"+{monthly.get('month_net_change', 0)}")
         ]
         if report.get('completion_rate'):
@@ -324,9 +324,9 @@ def _generate_overview_section(stats: Dict, report: Dict) -> str:
         color = ''
         if '新增' in label and str(value).startswith('+'):
             color = 'color: #28a745;'
-        elif '关闭' in label:
+        elif 'shutdown' in label:
             color = 'color: #007bff;'
-        elif '未关闭' in label:
+        elif '未shutdown' in label:
             color = 'color: #dc3545;'
         
         rows += f"""

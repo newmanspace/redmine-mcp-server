@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-ADS 报表定时生成任务
+ADS 报表scheduledgeneratejob
 
-集成到 Redmine 调度器，支持：
-- 每日生成项目健康度报表
-- 每月生成贡献者和用户工作量报表
-- 手动触发所有报表生成
+集成到 Redmine scheduler，support：
+- 每日generateproject健康度报表
+- 每月generate贡献者和user工作量报表
+- 手动触发所有报表generate
 """
 
 import logging
@@ -17,28 +17,28 @@ logger = logging.getLogger(__name__)
 
 
 class ADSReportScheduler:
-    """ADS 报表调度器"""
+    """ADS 报表scheduler"""
     
     def __init__(self, db_pool):
         self.db_pool = db_pool
         
     def get_connection(self):
-        """获取数据库连接"""
+        """getdatabaseconnection"""
         return self.db_pool.getconn()
     
     def release_connection(self, conn):
-        """释放数据库连接"""
+        """释放databaseconnection"""
         self.db_pool.putconn(conn)
     
     def generate_daily_health_reports(self, project_ids: Optional[List[int]] = None) -> int:
         """
-        生成每日项目健康度报表
+        generate每日project健康度报表
         
         Args:
-            project_ids: 项目 ID 列表（可选，默认所有项目）
+            project_ids: project ID list（optional，default所有project）
         
         Returns:
-            生成的报表数量
+            generate的报表数量
         """
         logger.info("Generating daily health reports...")
         
@@ -47,7 +47,7 @@ class ADSReportScheduler:
         
         try:
             with conn.cursor() as cur:
-                # 获取项目列表
+                # getprojectlist
                 if not project_ids:
                     cur.execute("SELECT DISTINCT project_id FROM warehouse.dws_project_daily_summary")
                     project_ids = [row['project_id'] for row in cur.fetchall()]
@@ -56,7 +56,7 @@ class ADSReportScheduler:
                 
                 for project_id in project_ids:
                     try:
-                        # 获取最新统计数据
+                        # get最新statisticsdata
                         cur.execute("""
                             SELECT * FROM warehouse.dws_project_daily_summary
                             WHERE project_id = %s
@@ -88,12 +88,12 @@ class ADSReportScheduler:
                         else:
                             risk_level = 'critical'
                         
-                        # 获取项目名称
+                        # getprojectname
                         cur.execute("SELECT name FROM warehouse.ods_projects WHERE project_id = %s", (project_id,))
                         proj_result = cur.fetchone()
                         project_name = proj_result['name'] if proj_result else f"Project {project_id}"
                         
-                        # 插入报表
+                        # insert报表
                         cur.execute("""
                             INSERT INTO warehouse.ads_project_health_report (
                                 project_id, project_name, snapshot_date,
@@ -144,17 +144,17 @@ class ADSReportScheduler:
     def generate_monthly_contributor_reports(self, year_month: Optional[str] = None, 
                                             project_ids: Optional[List[int]] = None) -> int:
         """
-        生成每月贡献者报表
+        generate每月贡献者报表
         
         Args:
-            year_month: 年月（YYYY-MM），默认上月
-            project_ids: 项目 ID 列表
+            year_month: 年月（YYYY-MM），default上月
+            project_ids: project ID list
         
         Returns:
-            生成的报表数量
+            generate的报表数量
         """
         if not year_month:
-            # 默认生成上月报表
+            # defaultgenerate上月报表
             last_month = datetime.now().replace(day=1) - timedelta(days=1)
             year_month = last_month.strftime('%Y-%m')
         
@@ -165,7 +165,7 @@ class ADSReportScheduler:
         
         try:
             with conn.cursor() as cur:
-                # 获取项目列表
+                # getprojectlist
                 if not project_ids:
                     cur.execute("SELECT DISTINCT project_id FROM warehouse.dws_issue_contributors")
                     project_ids = [row['project_id'] for row in cur.fetchall()]
@@ -211,10 +211,10 @@ class ADSReportScheduler:
     
     def generate_monthly_workload_reports(self, year_month: Optional[str] = None) -> int:
         """
-        生成每月用户工作量报表
+        generate每月user工作量报表
         
         Returns:
-            生成的报表数量
+            generate的报表数量
         """
         if not year_month:
             last_month = datetime.now().replace(day=1) - timedelta(days=1)
@@ -265,10 +265,10 @@ class ADSReportScheduler:
     
     def generate_all_monthly_reports(self, year_month: Optional[str] = None) -> Dict[str, int]:
         """
-        生成所有月度报表
+        generate所有月度报表
         
         Returns:
-            各类报表生成数量
+            各class报表generate数量
         """
         logger.info("Generating all monthly reports...")
         
@@ -285,16 +285,16 @@ class ADSReportScheduler:
 
 
 def init_ads_scheduler(db_pool):
-    """初始化 ADS 报表调度器"""
+    """initialize ADS 报表scheduler"""
     scheduler = ADSReportScheduler(db_pool)
     
-    # 添加到主调度器
+    # 添加到主scheduler
     from apscheduler.schedulers.background import BackgroundScheduler
     
     global ads_scheduler
     ads_scheduler = BackgroundScheduler()
     
-    # 每日 9:00 生成项目健康度报表
+    # 每日 9:00 generateproject健康度报表
     ads_scheduler.add_job(
         func=scheduler.generate_daily_health_reports,
         trigger="cron",
@@ -304,7 +304,7 @@ def init_ads_scheduler(db_pool):
         replace_existing=True
     )
     
-    # 每月 1 号生成上月贡献者和工作量报表
+    # 每月 1 号generate上月贡献者和工作量报表
     ads_scheduler.add_job(
         func=scheduler.generate_monthly_contributor_reports,
         trigger="cron",
@@ -332,7 +332,7 @@ def init_ads_scheduler(db_pool):
 
 
 def shutdown_ads_scheduler():
-    """关闭 ADS 报表调度器"""
+    """shutdown ADS 报表scheduler"""
     global ads_scheduler
     if ads_scheduler:
         ads_scheduler.shutdown()

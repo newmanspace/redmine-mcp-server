@@ -152,7 +152,7 @@ class BackfillSync:
                     current_state['status_name'] = status_name
                     
                     # Check if closed
-                    if status_name in ['已关闭', 'Closed']:
+                    if status_name in ['已shutdown', 'Closed']:
                         current_state['is_closed'] = True
                     
                     state_changed = True

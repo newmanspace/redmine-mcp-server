@@ -12,16 +12,16 @@ async def get_project_daily_stats(
     compare_with: Optional[str] = None
 ) -> Dict[str, Any]:
     """
-    获取项目每日统计数据，支持时间维度对比。
-    返回聚合数据而非原始 Issue 列表，适合生成日报。
+    getproject每日statisticsdata，supporttime维度对比。
+    return聚合data而非原始 Issue list，适合generate日报。
     
     Args:
-        project_id: Redmine 项目 ID
-        date: 查询日期 (YYYY-MM-DD), 默认为今天
-        compare_with: 对比时间段 ('yesterday', 'last_week', 'last_month')
+        project_id: Redmine project ID
+        date: querydate (YYYY-MM-DD), default为今天
+        compare_with: 对比time段 ('yesterday', 'last_week', 'last_month')
     
     Returns:
-        聚合统计数据字典
+        聚合statisticsdatadictionary
     """
     handler = RedmineHandler()
     

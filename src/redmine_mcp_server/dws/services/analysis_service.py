@@ -27,7 +27,7 @@ ROLE_CATEGORY_MAP = {
     'project manager': 'manager',
     'manager': 'manager',
     '负责人': 'manager',
-    '项目经理': 'manager',
+    'project经理': 'manager',
     
     # Implementation roles
     'implementation': 'implementation',
@@ -42,13 +42,13 @@ ROLE_CATEGORY_MAP = {
     
     # Tester roles
     'tester': 'tester',
-    '测试': 'tester',
-    '测试人员': 'tester',
+    'test': 'tester',
+    'test人员': 'tester',
     'qa': 'tester',
     
     # Other roles
     'viewer': 'other',
-    '报告者': 'other',
+    'report者': 'other',
     'reporter': 'other',
 }
 

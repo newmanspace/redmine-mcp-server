@@ -1,6 +1,6 @@
 # /docker/redmine-mcp-server/src/redmine_mcp_server/subscription_reporter.py
 """
-订阅报告生成与推送模块
+subscription reportgenerate与pushmodule
 """
 
 import logging
@@ -23,14 +23,14 @@ except ImportError:
 
 
 class SubscriptionReporter:
-    """订阅报告生成器"""
+    """subscription reportgenerate器"""
     
     def __init__(self):
         self.warehouse = None
         self._init_warehouse()
     
     def _init_warehouse(self):
-        """延迟初始化数仓连接"""
+        """延迟initialize数仓connection"""
         try:
             self.warehouse = DataWarehouse()
             logger.info("Reporter warehouse connection initialized")
@@ -40,13 +40,13 @@ class SubscriptionReporter:
     
     def generate_brief_report(self, project_id: int) -> Dict[str, Any]:
         """
-        生成简要报告
+        generatebriefreport
         
         Args:
-            project_id: 项目 ID
+            project_id: project ID
         
         Returns:
-            简要报告数据
+            briefreportdata
         """
         if not self.warehouse:
             return self._generate_brief_from_api(project_id)
@@ -84,7 +84,7 @@ class SubscriptionReporter:
             return self._generate_brief_from_api(project_id)
     
     def _generate_brief_from_api(self, project_id: int) -> Dict[str, Any]:
-        """从 Redmine API 生成简要报告"""
+        """从 Redmine API generatebriefreport"""
         if not redmine:
             return {"error": "Redmine client not initialized"}
         
@@ -136,13 +136,13 @@ class SubscriptionReporter:
     
     def generate_detailed_report(self, project_id: int) -> Dict[str, Any]:
         """
-        生成详细报告
+        generatedetailedreport
         
         Args:
-            project_id: 项目 ID
+            project_id: project ID
         
         Returns:
-            详细报告数据
+            detailedreportdata
         """
         if not self.warehouse:
             return self._generate_detailed_from_api(project_id)
@@ -167,7 +167,7 @@ class SubscriptionReporter:
                 try:
                     created = datetime.strptime(issue.get('created_at', '')[:10], '%Y-%m-%d')
                     age = (datetime.now() - created).days
-                    if age > 30 and issue.get('status_name') not in ['已关闭', '已解决']:
+                    if age > 30 and issue.get('status_name') not in ['已shutdown', '已解决']:
                         overdue_risks.append({
                             **issue,
                             "age_days": age
@@ -198,7 +198,7 @@ class SubscriptionReporter:
             return self._generate_detailed_from_api(project_id)
     
     def _generate_detailed_from_api(self, project_id: int) -> Dict[str, Any]:
-        """从 Redmine API 生成详细报告"""
+        """从 Redmine API generatedetailedreport"""
         if not redmine:
             return {"error": "Redmine client not initialized"}
         
@@ -261,7 +261,7 @@ class SubscriptionReporter:
         overdue_risks: List,
         top_assignees: List
     ) -> Dict[str, Any]:
-        """生成项目洞察"""
+        """generateproject洞察"""
         insights = {
             "alerts": [],
             "suggestions": []
@@ -272,7 +272,7 @@ class SubscriptionReporter:
             insights["alerts"].append({
                 "type": "overdue_risk",
                 "severity": "high" if len(overdue_risks) > 5 else "medium",
-                "message": f"发现 {len(overdue_risks)} 个逾期高优先级 Issue",
+                "message": f"发现 {len(overdue_risks)} 个逾期高priority Issue",
                 "count": len(overdue_risks)
             })
         
@@ -282,17 +282,17 @@ class SubscriptionReporter:
                 insights["alerts"].append({
                     "type": "workload",
                     "severity": "medium",
-                    "message": f"{assignee.get('assigned_to_name')} 负载过高 ({assignee.get('total')} 任务)",
+                    "message": f"{assignee.get('assigned_to_name')} 负载过高 ({assignee.get('total')} job)",
                     "assignee": assignee.get('assigned_to_name'),
                     "task_count": assignee.get('total')
                 })
         
         # Recommendations
         if stats.get('today_new', 0) > 20:
-            insights["suggestions"].append("今日新增 Issue 较多，建议安排优先级评审")
+            insights["suggestions"].append("今日新增 Issue 较多，建议安排priority评审")
         
         if stats.get('today_closed', 0) == 0 and stats.get('total', 0) > 100:
-            insights["suggestions"].append("今日无关闭 Issue，建议关注进度")
+            insights["suggestions"].append("今日无shutdown Issue，建议关注进度")
         
         return insights
     
@@ -302,51 +302,51 @@ class SubscriptionReporter:
         channel: str = "dingtalk"
     ) -> str:
         """
-        格式化报告为消息文本
+        format化report为消息文本
         
         Args:
-            report: 报告数据
-            channel: 推送渠道
+            report: reportdata
+            channel: pushchannel
         
         Returns:
-            格式化后的消息
+            format化后的消息
         """
         level = report.get('level', 'brief')
         project_id = report.get('project_id')
         summary = report.get('summary', {})
         
         lines = []
-        lines.append(f"📊 项目订阅报告")
-        lines.append(f"📁 项目 ID: {project_id}")
+        lines.append(f"📊 projectsubscription report")
+        lines.append(f"📁 project ID: {project_id}")
         lines.append(f"📅 {datetime.now().strftime('%Y-%m-%d %H:%M')}")
         lines.append("")
         lines.append("━━━" * 10)
         lines.append("")
         
         # Status snapshot
-        lines.append("### 📈 状态快照")
+        lines.append("### 📈 status快照")
         if 'total_issues' in summary:
             lines.append(f"- Issue 总数：{summary.get('total_issues', 'N/A')}")
         if 'new_today' in summary:
             lines.append(f"- 新建 (今日): {summary.get('new_today', 0)}")
         if 'closed_today' in summary:
-            lines.append(f"- 关闭 (今日): {summary.get('closed_today', 0)}")
+            lines.append(f"- shutdown (今日): {summary.get('closed_today', 0)}")
         lines.append("")
         
         if level == "detailed":
             # Detailed report content
             if 'priority_breakdown' in report:
                 priority = report['priority_breakdown']
-                lines.append("**优先级分布**:")
+                lines.append("**priority分布**:")
                 lines.append(f"- 🔴 立刻：{priority.get('立刻', 0)}")
                 lines.append(f"- 🟠 紧急：{priority.get('紧急', 0)}")
                 lines.append(f"- 🟡 高：{priority.get('高', 0)}")
                 lines.append("")
             
             if 'top_assignees' in report:
-                lines.append("### 👥 人员任务量 TOP5")
+                lines.append("### 👥 人员job量 TOP5")
                 for a in report['top_assignees'][:5]:
-                    lines.append(f"- {a.get('assigned_to_name')}: {a.get('total')} 任务")
+                    lines.append(f"- {a.get('assigned_to_name')}: {a.get('total')} job")
                 lines.append("")
             
             if 'overdue_risks' in report and report['overdue_risks']:
@@ -357,7 +357,7 @@ class SubscriptionReporter:
         
         # High priority Issue
         if 'top_issues' in report or 'high_priority_issues' in report:
-            lines.append("### 🔴 高优先级 Issue")
+            lines.append("### 🔴 高priority Issue")
             issues = report.get('top_issues', report.get('high_priority_issues', []))
             for issue in issues[:10]:
                 icon = "🔴" if issue.get('priority_name') == '立刻' else "🟠" if issue.get('priority_name') == '紧急' else "🟡"
@@ -375,7 +375,7 @@ reporter: Optional[SubscriptionReporter] = None
 
 
 def get_reporter() -> SubscriptionReporter:
-    """获取报告器单例"""
+    """getreport器单例"""
     global reporter
     if reporter is None:
         reporter = SubscriptionReporter()

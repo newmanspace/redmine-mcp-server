@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-数据质量监控
+data质量监控
 
-监控数仓数据质量，包括：
-- 表行数统计
-- 数据新鲜度
-- 数据完整性
-- 异常检测
+监控数仓data质量，包括：
+- 表行数statistics
+- data新鲜度
+- datacomprehensive性
+- exception检测
 - 告警通知
 """
 
@@ -22,7 +22,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# 数据库配置
+# databaseconfiguration
 WAREHOUSE_DB_HOST = os.getenv("WAREHOUSE_DB_HOST", "warehouse-db")
 WAREHOUSE_DB_PORT = os.getenv("WAREHOUSE_DB_PORT", "5432")
 WAREHOUSE_DB_NAME = os.getenv("WAREHOUSE_DB_NAME", "redmine_warehouse")
@@ -34,25 +34,25 @@ from psycopg2.extras import RealDictCursor
 
 
 class DataQualityMonitor:
-    """数据质量监控器"""
+    """data质量监控器"""
     
     def __init__(self):
         self.conn = None
         self.cursor = None
         
-        # 监控阈值配置
+        # 监控阈valueconfiguration
         self.thresholds = {
-            "max_data_age_hours": 24,  # 数据最大年龄（小时）
+            "max_data_age_hours": 24,  # data最大年龄（小时）
             "min_row_count": {
                 "ods_projects": 1,
                 "ods_issues": 10,
                 "dws_project_daily_summary": 10,
             },
-            "null_rate_threshold": 0.1,  # 空值率阈值 10%
+            "null_rate_threshold": 0.1,  # 空value率阈value 10%
         }
     
     def connect_db(self):
-        """连接数据库"""
+        """connectiondatabase"""
         try:
             self.conn = psycopg2.connect(
                 host=WAREHOUSE_DB_HOST,
@@ -69,7 +69,7 @@ class DataQualityMonitor:
             raise
     
     def close_db(self):
-        """关闭数据库连接"""
+        """shutdowndatabaseconnection"""
         if self.cursor:
             self.cursor.close()
         if self.conn:
@@ -77,7 +77,7 @@ class DataQualityMonitor:
         logger.info("Database connection closed")
     
     def get_table_row_counts(self) -> Dict[str, int]:
-        """获取所有表行数"""
+        """get所有表行数"""
         counts = {}
         
         tables = [
@@ -98,10 +98,10 @@ class DataQualityMonitor:
         return counts
     
     def check_data_freshness(self) -> Dict[str, Any]:
-        """检查数据新鲜度"""
+        """checkdata新鲜度"""
         freshness = {}
         
-        # 检查各表最新数据时间
+        # check各表最新datatime
         checks = {
             "ods_issues": "updated_on",
             "dwd_issue_daily_snapshot": "snapshot_date",
@@ -143,10 +143,10 @@ class DataQualityMonitor:
         return freshness
     
     def check_data_completeness(self) -> Dict[str, Any]:
-        """检查数据完整性"""
+        """checkdatacomprehensive性"""
         completeness = {}
         
-        # 检查关键字段的空值率
+        # check关key字段的空value率
         checks = [
             ("ods_issues", "subject", "issue_id"),
             ("ods_issues", "project_id", "issue_id"),
@@ -182,11 +182,11 @@ class DataQualityMonitor:
         return completeness
     
     def check_data_consistency(self) -> Dict[str, Any]:
-        """检查数据一致性"""
+        """checkdata一致性"""
         consistency = {}
         
         try:
-            # 检查 Issue 是否都有对应的项目
+            # check Issue 是否都有对应的project
             self.cursor.execute("""
                 SELECT COUNT(*) as orphan_issues
                 FROM warehouse.ods_issues i
@@ -201,7 +201,7 @@ class DataQualityMonitor:
                 "status": "OK" if orphan_count == 0 else "ISSUE"
             }
             
-            # 检查快照日期是否连续
+            # check快照date是否连续
             self.cursor.execute("""
                 SELECT COUNT(DISTINCT snapshot_date) as unique_dates
                 FROM warehouse.dws_project_daily_summary
@@ -210,7 +210,7 @@ class DataQualityMonitor:
             result = self.cursor.fetchone()
             unique_dates = result['unique_dates'] if result else 0
             
-            # 30 天内应该有接近 30 个不同的日期
+            # 30 天内应该有接近 30 个不同的date
             consistency["snapshot_continuity"] = {
                 "unique_dates_30d": unique_dates,
                 "expected": 30,
@@ -224,7 +224,7 @@ class DataQualityMonitor:
         return consistency
     
     def run_all_checks(self) -> Dict[str, Any]:
-        """运行所有质量检查"""
+        """running所有质量check"""
         logger.info("Starting data quality checks...")
         
         self.connect_db()
@@ -239,28 +239,28 @@ class DataQualityMonitor:
                 "overall_status": "OK"
             }
             
-            # 计算总体状态
+            # 计算总体status
             issues = []
             
-            # 检查行数
+            # check行数
             for table, min_count in self.thresholds["min_row_count"].items():
                 if table in results["row_counts"]:
                     if results["row_counts"][table] < min_count:
                         issues.append(f"Low row count in {table}: {results['row_counts'][table]} < {min_count}")
             
-            # 检查新鲜度
+            # check新鲜度
             for table, info in results["freshness"].items():
                 if info.get("status") == "STALE":
                     issues.append(f"Stale data in {table}: {info.get('age_hours')}h")
                 elif info.get("status") == "EMPTY":
                     issues.append(f"Empty table: {table}")
             
-            # 检查完整性
+            # checkcomprehensive性
             for field, info in results["completeness"].items():
                 if info.get("status") == "HIGH_NULL_RATE":
                     issues.append(f"High null rate in {field}: {info.get('null_rate')}")
             
-            # 检查一致性
+            # check一致性
             for check, info in results["consistency"].items():
                 if info.get("status") == "ISSUE" or info.get("status") == "GAPS":
                     issues.append(f"Consistency issue in {check}")
@@ -285,7 +285,7 @@ class DataQualityMonitor:
             self.close_db()
     
     def save_quality_report(self, results: Dict[str, Any]):
-        """保存质量报告到数据库"""
+        """save质量report到database"""
         self.connect_db()
         
         try:
@@ -317,7 +317,7 @@ class DataQualityMonitor:
             self.close_db()
 
 
-# 质量报告表（需要先创建）
+# 质量report表（需要先create）
 CREATE_QUALITY_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS warehouse.data_quality_report (
     id BIGSERIAL PRIMARY KEY,
@@ -336,12 +336,12 @@ CREATE INDEX IF NOT EXISTS idx_quality_report_timestamp ON warehouse.data_qualit
 
 
 def init_quality_monitor(db_pool):
-    """初始化数据质量监控"""
+    """initializedata质量监控"""
     from apscheduler.schedulers.background import BackgroundScheduler
     
     monitor = DataQualityMonitor()
     
-    # 创建质量报告表
+    # create质量report表
     try:
         conn = db_pool.getconn()
         with conn.cursor() as cur:
@@ -352,11 +352,11 @@ def init_quality_monitor(db_pool):
     except Exception as e:
         logger.error(f"Failed to create quality table: {e}")
     
-    # 创建调度器
+    # createscheduler
     global quality_scheduler
     quality_scheduler = BackgroundScheduler()
     
-    # 每日 8:00 运行质量检查
+    # 每日 8:00 running质量check
     quality_scheduler.add_job(
         func=lambda: monitor.save_quality_report(monitor.run_all_checks()),
         trigger="cron",
@@ -373,7 +373,7 @@ def init_quality_monitor(db_pool):
 
 
 def shutdown_quality_monitor():
-    """关闭质量监控"""
+    """shutdown质量监控"""
     global quality_scheduler
     if quality_scheduler:
         quality_scheduler.shutdown()
@@ -381,7 +381,7 @@ def shutdown_quality_monitor():
 
 
 if __name__ == "__main__":
-    # 手动运行测试
+    # 手动runningtest
     monitor = DataQualityMonitor()
     results = monitor.run_all_checks()
     
