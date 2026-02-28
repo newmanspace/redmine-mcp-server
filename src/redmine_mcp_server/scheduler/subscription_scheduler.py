@@ -158,7 +158,7 @@ class SubscriptionScheduler:
                 if send_time != current_time:
                     continue
                 
-                # 根据报告类型检查日期
+                # 根据report type检查日期
                 if report_type == 'daily':
                     should_send = True
                 elif report_type == 'weekly':
@@ -175,7 +175,7 @@ class SubscriptionScheduler:
                         should_send = (current_day_of_month == 1)  # 默认 1 号
                 
                 if should_send:
-                    # 发送报告
+                    # Send report
                     self._send_single_subscription(sub)
             
             manager.close()

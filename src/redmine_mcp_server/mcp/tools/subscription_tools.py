@@ -165,7 +165,7 @@ async def get_project_daily_stats(
     date: Optional[str] = None,
     compare_with: Optional[str] = None
 ) -> Dict[str, Any]:
-    """获取项目每日统计数据，支持时间维度对比。使用 PostgreSQL 数仓，Token 消耗低 97%。"""
+    """Get project daily statistics with time-series comparison。Uses PostgreSQL warehouse, 97% lower token consumption。"""
     from datetime import timedelta
     from .redmine_warehouse import DataWarehouse
     import requests

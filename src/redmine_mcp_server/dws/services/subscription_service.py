@@ -108,7 +108,7 @@ class SubscriptionManager:
             return {}
 
     def _save_subscription_to_db(self, subscription: Dict[str, Any]):
-        """保存单个订阅到数据库"""
+        """Save single subscription to database"""
         if not self.warehouse or not self._db_exists():
             return
 
@@ -147,7 +147,7 @@ class SubscriptionManager:
             raise
 
     def _delete_subscription_from_db(self, subscription_id: str):
-        """从数据库删除订阅"""
+        """Delete subscription from database"""
         if not self.warehouse or not self._db_exists():
             return
 
@@ -162,7 +162,7 @@ class SubscriptionManager:
             logger.error(f"Failed to delete subscription from database: {e}")
 
     def _load_subscriptions(self) -> Dict[str, Any]:
-        """从数据库加载订阅配置"""
+        """Load subscription configuration from database"""
         return self._load_subscriptions_from_db()
     
     def subscribe(
@@ -180,15 +180,15 @@ class SubscriptionManager:
         trend_period_days: int = 7
     ) -> Dict[str, Any]:
         """
-        订阅项目报告
+        Subscribe to project report
 
         Args:
-            user_id: 用户 ID
-            project_id: 项目 ID
-            channel: 推送渠道 (dingtalk/telegram/email)
-            channel_id: 渠道 ID (钉钉用户 ID/Telegram chat ID/邮箱)
-            report_type: 报告类型 (daily/weekly/monthly)
-            report_level: 报告级别 (brief/detailed/comprehensive)
+            user_id: user_id
+            project_id: project_id
+            channel: push channel (dingtalk/telegram/email)
+            channel_id: 渠道 ID (钉钉user_id/Telegram chat ID/邮箱)
+            report_type: report type (daily/weekly/monthly)
+            report_level: report level (brief/detailed/comprehensive)
             send_time: 发送时间 (HH:MM 格式)
             send_day_of_week: 周报发送星期 (Mon/Tue/Wed/Thu/Fri/Sat/Sun)
             send_day_of_month: 月报发送日期 (1-31)
@@ -196,7 +196,7 @@ class SubscriptionManager:
             trend_period_days: 趋势分析周期 (天数)
 
         Returns:
-            订阅结果
+            subscription result
         """
         subscription_id = f"{user_id}:{project_id}:{channel}"
         now = datetime.now()
@@ -227,7 +227,7 @@ class SubscriptionManager:
         return {
             "success": True,
             "subscription_id": subscription_id,
-            "message": f"已订阅项目 {project_id} 的{report_type}报告",
+            "message": f"Subscribed to {report_type} report for project {project_id}",
             "subscription": subscription
         }
 
@@ -238,11 +238,11 @@ class SubscriptionManager:
         channel: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        取消订阅
+        Unsubscribe from project
 
         Args:
-            user_id: 用户 ID
-            project_id: 项目 ID (可选，不传则取消该项目所有订阅)
+            user_id: user_id
+            project_id: project_id (optional, unsubscribe all from project if not provided)
             channel: 渠道 (可选)
 
         Returns:
@@ -273,16 +273,16 @@ class SubscriptionManager:
                 "success": True,
                 "removed_count": len(removed),
                 "removed_subscriptions": removed,
-                "message": f"已取消 {len(removed)} 个订阅"
+                "message": f"Cancelled {len(removed)} subscriptions"
             }
         else:
             return {
                 "success": False,
-                "message": "未找到匹配的订阅"
+                "message": "No matching subscription found"
             }
 
     def get_user_subscriptions(self, user_id: str) -> List[Dict[str, Any]]:
-        """获取用户的所有订阅"""
+        """Get all user subscriptions"""
         subscriptions = self._load_subscriptions()
         return [
             sub for sub in subscriptions.values()
@@ -290,7 +290,7 @@ class SubscriptionManager:
         ]
 
     def get_project_subscribers(self, project_id: int) -> List[Dict[str, Any]]:
-        """获取项目的所有订阅者"""
+        """Get all project subscribers"""
         subscriptions = self._load_subscriptions()
         return [
             sub for sub in subscriptions.values()
@@ -303,14 +303,14 @@ class SubscriptionManager:
         current_time: Optional[datetime] = None
     ) -> List[Dict[str, Any]]:
         """
-        获取当前应该推送的订阅
+        Get subscriptions due for push
 
         Args:
             frequency: 频率类型 (daily/weekly/monthly)
             current_time: 当前时间
 
         Returns:
-            应该推送的订阅列表
+            List of subscriptions to push
         """
         if current_time is None:
             current_time = datetime.now()
@@ -361,13 +361,13 @@ class SubscriptionManager:
         subscription_id: str,
         **kwargs
     ) -> Dict[str, Any]:
-        """更新订阅配置"""
+        """Update subscription configuration"""
         subscriptions = self._load_subscriptions()
         
         if subscription_id not in subscriptions:
             return {
                 "success": False,
-                "message": "订阅不存在"
+                "message": "Subscription does not exist"
             }
 
         sub = subscriptions[subscription_id]
@@ -385,17 +385,17 @@ class SubscriptionManager:
 
         return {
             "success": True,
-            "message": "订阅已更新",
+            "message": "Subscription updated",
             "subscription": sub
         }
 
     def list_all_subscriptions(self) -> List[Dict[str, Any]]:
-        """列出所有订阅"""
+        """List all subscriptions"""
         subscriptions = self._load_subscriptions()
         return list(subscriptions.values())
 
     def get_stats(self) -> Dict[str, Any]:
-        """获取订阅统计"""
+        """Get subscription statistics"""
         subscriptions = self._load_subscriptions()
         subs = list(subscriptions.values())
 
@@ -432,7 +432,7 @@ subscription_manager: Optional[SubscriptionManager] = None
 
 
 def get_subscription_manager() -> SubscriptionManager:
-    """获取订阅管理器单例"""
+    """Get subscription manager singleton"""
     global subscription_manager
     if subscription_manager is None:
         subscription_manager = SubscriptionManager()
@@ -440,7 +440,7 @@ def get_subscription_manager() -> SubscriptionManager:
 
 
 def init_subscription_manager():
-    """初始化订阅管理器"""
+    """Initialize subscription manager"""
     global subscription_manager
     subscription_manager = SubscriptionManager()
     logger.info("Subscription manager initialized")

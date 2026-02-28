@@ -16,7 +16,7 @@ async def trigger_contributor_sync(
     触发贡献者分析同步
     
     Args:
-        project_id: 项目 ID（可选，分析整个项目）
+        project_id: project_id(optional, analyze entire project if not provided)
         issue_ids: Issue ID 列表（可选，分析特定 Issue）
     
     Returns:

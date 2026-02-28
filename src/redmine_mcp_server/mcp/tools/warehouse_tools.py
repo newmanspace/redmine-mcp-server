@@ -12,10 +12,10 @@ async def unsubscribe_project(
     project_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """
-    取消项目订阅
+    Unsubscribe from project
 
     Args:
-        project_id: 项目 ID (可选，不传则取消所有订阅)
+        project_id: project_id (optional, unsubscribe all if not provided)
 
     Returns:
         取消结果
@@ -36,10 +36,10 @@ async def unsubscribe_project(
 @mcp.tool()
 async def list_my_subscriptions() -> List[Dict[str, Any]]:
     """
-    查看我的订阅列表
+    查看我report forsubscription list
 
     Returns:
-        订阅列表
+        subscription list
     """
     from ..dws.services.subscription_service import get_subscription_manager
 
@@ -57,7 +57,7 @@ async def list_my_subscriptions() -> List[Dict[str, Any]]:
 @mcp.tool()
 async def get_subscription_stats() -> Dict[str, Any]:
     """
-    获取订阅统计信息
+    Get subscription statistics信息
 
     Returns:
         统计数据

@@ -64,7 +64,7 @@ def register_ads_tools(mcp):
         project_id: int,
         snapshot_date: Optional[str] = None
     ) -> Dict[str, Any]:
-        """生成项目健康度报表"""
+        """Generate project health report"""
         from .redmine_warehouse import DataWarehouse
         from datetime import date as date_class
         
@@ -210,7 +210,7 @@ def register_ads_tools(mcp):
     async def get_project_health_latest(
         project_id: Optional[int] = None
     ) -> Dict[str, Any]:
-        """获取最新项目健康度"""
+        """Get latest project health status"""
         from .redmine_warehouse import DataWarehouse
         
         try:

@@ -2457,10 +2457,10 @@ async def get_project_role_distribution(
     date: Optional[str] = None
 ) -> Dict[str, Any]:
     """
-    获取项目角色分布
+    Get project role distribution
     
     Args:
-        project_id: 项目 ID
+        project_id: project_id
         date: 日期（YYYY-MM-DD），默认今天
     
     Returns:
@@ -2518,12 +2518,12 @@ async def get_user_workload(
     project_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """
-    获取用户工作量统计
+    Get user workload statistics
     
     Args:
-        user_id: 用户 ID
+        user_id: user_id
         year_month: 年月（YYYY-MM），默认本月
-        project_id: 项目 ID（可选）
+        project_id: project_id(optional)
     
     Returns:
         工作量统计信息
@@ -2577,7 +2577,7 @@ async def trigger_contributor_sync(
     触发贡献者分析同步
     
     Args:
-        project_id: 项目 ID（可选，分析整个项目）
+        project_id: project_id(optional, analyze entire project)
         issue_ids: Issue ID 列表（可选，分析特定 Issue）
     
     Returns:
