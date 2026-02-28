@@ -52,8 +52,8 @@ from requests.exceptions import (
 from importlib.metadata import version, PackageNotFoundError
 
 from mcp.server.fastmcp import FastMCP
+# from .ads_reports import register_ads_tools
 from .core.file_manager import AttachmentFileManager
-from .ads_reports import register_ads_tools
 
 # Configure logging
 logger = logging.getLogger(__name__)
