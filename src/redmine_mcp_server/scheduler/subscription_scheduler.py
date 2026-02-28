@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-订阅定时调度器
+Subscription Scheduler
 
-根据订阅配置，在指定时间自动发送日报/周报/月报
+Automatically sends daily/weekly/monthly reports at scheduled times based on subscription configuration.
 """
 
 import os
@@ -18,22 +18,22 @@ logger = logging.getLogger(__name__)
 
 
 class SubscriptionScheduler:
-    """订阅定时调度器"""
+    """Subscription Scheduler"""
 
     def __init__(self):
         self.scheduler = BackgroundScheduler(
-            timezone='Asia/Shanghai',  # 使用东八区时间
+            timezone='Asia/Shanghai',  # Use UTC+8 timezone
             job_defaults={
-                'coalesce': True,      # 合并错过的执行
-                'max_instances': 1,    # 每个任务最多 1 个实例
-                'misfire_grace_time': 3600  # 允许错过 1 小时
+                'coalesce': True,      # Coalesce missed executions
+                'max_instances': 1,    # Maximum 1 instance per job
+                'misfire_grace_time': 3600  # Allow 1 hour grace time for missed executions
             }
         )
         self._initialized = False
         logger.info("SubscriptionScheduler initialized")
 
     def start(self):
-        """启动调度器"""
+        """Start scheduler"""
         if not self._initialized:
             self._initialize_jobs()
             self._initialized = True
@@ -42,13 +42,13 @@ class SubscriptionScheduler:
         logger.info("SubscriptionScheduler started")
 
     def shutdown(self, wait=True):
-        """关闭调度器"""
+        """Shutdown scheduler"""
         self.scheduler.shutdown(wait=wait)
         logger.info("SubscriptionScheduler shutdown")
 
     def _initialize_jobs(self):
-        """初始化定时任务"""
-        # 每日报告 - 每天早上 9:00 执行
+        """Initialize scheduled jobs"""
+        # Daily reports - execute at 09:00 every day
         self.scheduler.add_job(
             func=self._send_daily_reports,
             trigger=CronTrigger(hour=9, minute=0),
@@ -68,7 +68,7 @@ class SubscriptionScheduler:
         )
         logger.info("Scheduled: Weekly reports on Monday 09:00")
 
-        # 月报 - 每月 1 号早上 10:00 执行
+        # Monthly reports - execute at 10:00 on 1st day of each month
         self.scheduler.add_job(
             func=self._send_monthly_reports,
             trigger=CronTrigger(hour=10, minute=0, day=1),
@@ -78,7 +78,7 @@ class SubscriptionScheduler:
         )
         logger.info("Scheduled: Monthly reports on 1st day 10:00")
 
-        # 检查器 - 每分钟检查是否有需要发送的报告（处理自定义时间）
+        # Checker - check every minute for custom time subscriptions
         self.scheduler.add_job(
             func=self._check_custom_time_subscriptions,
             trigger=IntervalTrigger(minutes=1),
@@ -89,7 +89,7 @@ class SubscriptionScheduler:
         logger.info("Scheduled: Check custom subscriptions every minute")
 
     def _send_daily_reports(self):
-        """发送每日报告"""
+        """Send daily reports"""
         try:
             logger.info("Sending daily subscription reports...")
             from .subscription_push_service import SubscriptionPushService
@@ -103,7 +103,7 @@ class SubscriptionScheduler:
             logger.error(f"Failed to send daily reports: {e}")
 
     def _send_weekly_reports(self):
-        """发送每周报告"""
+        """Send weekly reports"""
         try:
             logger.info("Sending weekly subscription reports...")
             from .subscription_push_service import SubscriptionPushService
@@ -117,7 +117,7 @@ class SubscriptionScheduler:
             logger.error(f"Failed to send weekly reports: {e}")
 
     def _send_monthly_reports(self):
-        """发送每月报告"""
+        """Send monthly reports"""
         try:
             logger.info("Sending monthly subscription reports...")
             from .subscription_push_service import SubscriptionPushService
@@ -131,7 +131,7 @@ class SubscriptionScheduler:
             logger.error(f"Failed to send monthly reports: {e}")
 
     def _check_custom_time_subscriptions(self):
-        """检查自定义时间的订阅（处理非标准时间的订阅）"""
+        """Check custom time subscriptions"""
         try:
             from .subscription_service import get_subscription_manager
             
@@ -184,7 +184,7 @@ class SubscriptionScheduler:
             logger.error(f"Failed to check custom subscriptions: {e}")
 
     def _send_single_subscription(self, subscription: Dict[str, Any]):
-        """发送单个订阅"""
+        """Send single subscription"""
         try:
             from .subscription_push_service import SubscriptionPushService
             
@@ -201,7 +201,7 @@ class SubscriptionScheduler:
             logger.error(f"Error sending subscription {subscription.get('subscription_id')}: {e}")
 
     def get_job_status(self) -> Dict[str, Any]:
-        """获取调度任务状态"""
+        """Get job status"""
         jobs = []
         for job in self.scheduler.get_jobs():
             jobs.append({
@@ -223,7 +223,7 @@ _scheduler: Optional[SubscriptionScheduler] = None
 
 
 def init_subscription_scheduler() -> SubscriptionScheduler:
-    """初始化订阅调度器"""
+    """Initialize subscription scheduler"""
     global _scheduler
     if _scheduler is None:
         _scheduler = SubscriptionScheduler()
@@ -232,12 +232,12 @@ def init_subscription_scheduler() -> SubscriptionScheduler:
 
 
 def get_subscription_scheduler() -> Optional[SubscriptionScheduler]:
-    """获取订阅调度器实例"""
+    """Get subscription scheduler instance"""
     return _scheduler
 
 
 def shutdown_subscription_scheduler():
-    """关闭订阅调度器"""
+    """Shutdown subscription scheduler"""
     global _scheduler
     if _scheduler:
         _scheduler.shutdown()
@@ -247,7 +247,7 @@ def shutdown_subscription_scheduler():
 # Convenience functions for manual trigger
 
 def send_daily_reports() -> Dict[str, Any]:
-    """手动发送每日报告"""
+    """Manually send daily reports"""
     try:
         from .subscription_push_service import SubscriptionPushService
         service = SubscriptionPushService()
@@ -257,7 +257,7 @@ def send_daily_reports() -> Dict[str, Any]:
 
 
 def send_weekly_reports() -> Dict[str, Any]:
-    """手动发送每周报告"""
+    """Manually send weekly reports"""
     try:
         from .subscription_push_service import SubscriptionPushService
         service = SubscriptionPushService()
@@ -267,7 +267,7 @@ def send_weekly_reports() -> Dict[str, Any]:
 
 
 def send_monthly_reports() -> Dict[str, Any]:
-    """手动发送每月报告"""
+    """Manually send monthly reports"""
     try:
         from .subscription_push_service import SubscriptionPushService
         service = SubscriptionPushService()

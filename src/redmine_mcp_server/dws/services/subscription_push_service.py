@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-订阅推送服务
+Subscription Push Service
 
-根据订阅配置，定时向用户发送项目状态报告
-支持渠道：Email, DingTalk, Telegram
+Sends periodic project status reports to users based on subscription configuration.
+Supported channels: Email, DingTalk, Telegram
 """
 
 import os
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class SubscriptionPushService:
-    """订阅推送服务"""
+    """Subscription Push Service"""
 
     def __init__(self):
         self.redmine_url = os.getenv('REDMINE_URL')
@@ -38,7 +38,7 @@ class SubscriptionPushService:
         return resp.json()
 
     def get_project_stats(self, project_id: int) -> Dict[str, Any]:
-        """获取项目统计数据（向后兼容）"""
+        """Get project statistics (backward compatibility)"""
         from .report_generation_service import ReportGenerationService
         service = ReportGenerationService()
         return service.get_project_stats(project_id)
@@ -51,7 +51,7 @@ class SubscriptionPushService:
         include_trend: bool,
         trend_period: int
     ) -> Dict[str, Any]:
-        """生成报告"""
+        """Generate report"""
         from .report_generation_service import ReportGenerationService
         service = ReportGenerationService()
         return service.generate_report(
@@ -75,7 +75,7 @@ class SubscriptionPushService:
             return False
 
     def push_subscription(self, subscription: Dict[str, Any]) -> bool:
-        """推送单个订阅"""
+        """Push single subscription"""
         try:
             project_id = subscription.get('project_id')
             channel = subscription.get('channel')
@@ -130,7 +130,7 @@ class SubscriptionPushService:
             return False
 
     def push_due_subscriptions(self, frequency: str = "daily") -> Dict[str, Any]:
-        """推送所有到期的订阅"""
+        """Push all due subscriptions"""
         try:
             from .subscription_service import get_subscription_manager
             manager = get_subscription_manager()
@@ -178,33 +178,33 @@ class SubscriptionPushService:
             }
 
     def push_daily_subscriptions(self) -> Dict[str, Any]:
-        """推送所有每日订阅"""
+        """Push all daily subscriptions"""
         return self.push_due_subscriptions("daily")
 
     def push_weekly_subscriptions(self) -> Dict[str, Any]:
-        """推送所有每周订阅"""
+        """Push all weekly subscriptions"""
         return self.push_due_subscriptions("weekly")
 
     def push_monthly_subscriptions(self) -> Dict[str, Any]:
-        """推送所有每月订阅"""
+        """Push all monthly subscriptions"""
         return self.push_due_subscriptions("monthly")
 
 
 # Convenience functions
 
 def push_daily_reports() -> Dict[str, Any]:
-    """推送每日报告"""
+    """Push daily reports"""
     service = SubscriptionPushService()
     return service.push_daily_subscriptions()
 
 
 def push_weekly_reports() -> Dict[str, Any]:
-    """推送每周报告"""
+    """Push weekly reports"""
     service = SubscriptionPushService()
     return service.push_weekly_subscriptions()
 
 
 def push_monthly_reports() -> Dict[str, Any]:
-    """推送每月报告"""
+    """Push monthly reports"""
     service = SubscriptionPushService()
     return service.push_monthly_subscriptions()

@@ -1,8 +1,9 @@
 # /docker/redmine-mcp-server/src/redmine_mcp_server/dws/services/subscription_service.py
 """
-项目订阅管理模块
-支持用户订阅项目，接收定期报告（简要/详细）
-使用 PostgreSQL 数据库存储订阅信息
+Project Subscription Management Module
+
+Manages user subscriptions to projects for receiving periodic reports (brief/detailed).
+Uses PostgreSQL database for storing subscription information.
 """
 
 import os
@@ -31,7 +32,7 @@ SUBSCRIPTIONS_FILE = os.getenv(
 
 
 class SubscriptionManager:
-    """订阅管理器 - 使用 PostgreSQL 数据库存储订阅信息"""
+    """Subscription Manager - Uses PostgreSQL database for storing subscription information"""
 
     def __init__(self):
         self.warehouse = None
@@ -39,7 +40,7 @@ class SubscriptionManager:
         self._init_warehouse()
 
     def _init_warehouse(self):
-        """初始化数据仓库连接"""
+        """Initialize data warehouse connection"""
         try:
             from ..repository import DataWarehouse
             self.warehouse = DataWarehouse()
@@ -50,7 +51,7 @@ class SubscriptionManager:
             self.warehouse = None
 
     def _db_exists(self) -> bool:
-        """检查数据库表是否存在"""
+        """Check if database table exists"""
         if not self.warehouse:
             return False
         try:
@@ -58,8 +59,8 @@ class SubscriptionManager:
                 with conn.cursor() as cur:
                     cur.execute("""
                         SELECT EXISTS (
-                            SELECT FROM information_schema.tables 
-                            WHERE table_schema = 'warehouse' 
+                            SELECT FROM information_schema.tables
+                            WHERE table_schema = 'warehouse'
                             AND table_name = 'ads_user_subscriptions'
                         )
                     """)
@@ -69,7 +70,7 @@ class SubscriptionManager:
             return False
 
     def _load_subscriptions_from_db(self) -> Dict[str, Any]:
-        """从数据库加载订阅配置"""
+        """Load subscription configuration from database"""
         if not self.warehouse or not self._db_exists():
             return {}
 
