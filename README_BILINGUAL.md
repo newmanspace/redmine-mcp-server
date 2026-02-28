@@ -1,10 +1,22 @@
 # Redmine MCP Server - Bilingual Documentation / 双语文档
 
-**Version**: 0.10.0  
-**语言**: 中文 / English  
-**最后更新**: 2026-02-28
+> **🌐 Language Selection / 语言选择**:
+> - 🇨🇳 [中文版本](#中文) 
+> - 🇺🇸 [English Version](#english)
+> 
+> **Quick Links / 快速链接**:
+> - [Main README / 主页](README.md)
+> - [Translation Report / 翻译报告](TRANSLATION_COMPLETE_REPORT.md)
+> - [Deployment Guide / 部署指南](DEPLOYMENT_REPORT.md)
+
+**Version / 版本**: 0.10.0  
+**Last Updated / 最后更新**: 2026-02-28  
+**Status / 状态**: ✅ Production Ready / 生产就绪
 
 ---
+
+<a name="english"></a>
+## 🇺🇸 English Documentation
 
 ## Quick Start / 快速开始
 
@@ -255,6 +267,77 @@ docker compose restart
 - [Translation Progress](TRANSLATION_COMPLETE_REPORT.md)
 - [Deployment Guide](DEPLOYMENT_REPORT.md)
 - [i18n Configuration](src/redmine_mcp_server/i18n/)
+
+---
+
+## 🇨🇳 中文版本
+
+### 概述
+
+Redmine MCP Server 提供用于集成 Redmine 项目管理系统的模型上下文协议 (MCP) 工具。
+
+**主要功能**:
+- ✅ 订阅管理（日报/周报/月报）
+- ✅ 多语言支持（中文/英文）
+- ✅ 邮件通知
+- ✅ 自动调度
+- ✅ 趋势分析
+- ✅ PostgreSQL 数据仓库
+
+### 快速开始
+
+#### Docker 部署
+
+```bash
+# 克隆仓库
+git clone https://github.com/jztan/redmine-mcp-server.git
+cd redmine-mcp-server
+
+# 配置环境
+cp .env.example .env
+nano .env  # 编辑配置
+
+# 启动服务
+docker compose up -d
+
+# 检查状态
+docker compose ps
+```
+
+### 使用示例
+
+#### 订阅日报
+
+```python
+# 订阅中文日报
+subscribe_project(
+    project_id=341,
+    channel="email",
+    user_email="user@example.com",
+    report_type="daily",      # daily/weekly/monthly
+    report_level="brief",     # brief/detailed/comprehensive
+    language="zh_CN",         # en_US/zh_CN
+    send_time="09:00"
+)
+```
+
+### 报告类型
+
+| 类型 | 频率 | 描述 |
+|------|------|------|
+| 日报 | 每天 | 关键指标概览 |
+| 周报 | 每周一 | 周度总结带趋势 |
+| 月报 | 每月 1 号 | 完整分析 |
+
+### 翻译状态
+
+| 组件 | 状态 | 覆盖率 |
+|------|------|--------|
+| MCP 工具 | ✅ 完成 | 100% |
+| 服务层 | ✅ 完成 | 100% |
+| 调度器 | ✅ 完成 | 100% |
+| 代码注释 | 🔄 进行中 | 80% |
+| 文档 | 🔄 进行中 | 50% |
 
 ---
 
