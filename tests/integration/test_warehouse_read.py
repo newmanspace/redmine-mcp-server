@@ -11,7 +11,7 @@ import os
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from redmine_mcp_server.redmine_warehouse import DataWarehouse
+from redmine_mcp_server.dws.repository import DataWarehouse
 
 
 class TestWarehouseReadOperations(unittest.TestCase):
@@ -20,8 +20,8 @@ class TestWarehouseReadOperations(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         self.warehouse = DataWarehouse()
-        
-    @patch('redmine_mcp_server.warehouse.psycopg2')
+
+    @patch('redmine_mcp_server.dws.repository.psycopg2')
     def test_get_project_daily_stats_basic(self, mock_psycopg2):
         """Test basic project stats retrieval."""
         # Mock database connection and cursor
@@ -59,8 +59,8 @@ class TestWarehouseReadOperations(unittest.TestCase):
         self.assertEqual(result['by_status']['进行中'], 50)
         self.assertEqual(result['by_priority']['立刻'], 2)
         self.assertEqual(result['by_priority']['紧急'], 3)
-        
-    @patch('redmine_mcp_server.warehouse.psycopg2')
+
+    @patch('redmine_mcp_server.dws.repository.psycopg2')
     def test_get_high_priority_issues(self, mock_psycopg2):
         """Test high priority issues retrieval."""
         # Mock database connection and cursor
@@ -84,8 +84,8 @@ class TestWarehouseReadOperations(unittest.TestCase):
         self.assertEqual(result[0]['priority_name'], '立刻')
         self.assertEqual(result[1]['issue_id'], 77607)
         self.assertEqual(result[1]['priority_name'], '紧急')
-        
-    @patch('redmine_mcp_server.warehouse.psycopg2')
+
+    @patch('redmine_mcp_server.dws.repository.psycopg2')
     def test_get_top_assignees(self, mock_psycopg2):
         """Test top assignees retrieval."""
         # Mock database connection and cursor

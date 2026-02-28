@@ -11,7 +11,7 @@ from unittest.mock import Mock, patch, MagicMock
 # 添加 src 到路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from redmine_mcp_server.redmine_warehouse import DataWarehouse
+from redmine_mcp_server.dws.repository import DataWarehouse
 
 
 class TestDataWarehouse:
@@ -31,7 +31,7 @@ class TestDataWarehouse:
     
     def test_init(self, mock_env):
         """测试初始化"""
-        with patch('redmine_mcp_server.warehouse.pool.SimpleConnectionPool') as mock_pool:
+        with patch('redmine_mcp_server.dws.repository.pool.SimpleConnectionPool') as mock_pool:
             warehouse = DataWarehouse()
             
             assert warehouse.db_host == 'localhost'
@@ -42,7 +42,7 @@ class TestDataWarehouse:
     
     def test_get_connection(self, mock_env):
         """测试获取数据库连接"""
-        with patch('redmine_mcp_server.warehouse.pool.SimpleConnectionPool') as mock_pool:
+        with patch('redmine_mcp_server.dws.repository.pool.SimpleConnectionPool') as mock_pool:
             mock_conn = MagicMock()
             mock_pool.return_value.getconn.return_value = mock_conn
             
@@ -55,7 +55,7 @@ class TestDataWarehouse:
     
     def test_sync_issues(self, mock_env):
         """测试 Issue 同步"""
-        with patch('redmine_mcp_server.warehouse.pool.SimpleConnectionPool') as mock_pool:
+        with patch('redmine_mcp_server.dws.repository.pool.SimpleConnectionPool') as mock_pool:
             mock_conn = MagicMock()
             mock_cursor = MagicMock()
             mock_pool.return_value.getconn.return_value = mock_conn
@@ -84,7 +84,7 @@ class TestDataWarehouse:
     
     def test_get_project_daily_stats(self, mock_env):
         """测试获取项目统计"""
-        with patch('redmine_mcp_server.warehouse.pool.SimpleConnectionPool') as mock_pool:
+        with patch('redmine_mcp_server.dws.repository.pool.SimpleConnectionPool') as mock_pool:
             mock_conn = MagicMock()
             mock_cursor = MagicMock()
             mock_pool.return_value.getconn.return_value = mock_conn

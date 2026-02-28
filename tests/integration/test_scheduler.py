@@ -11,7 +11,7 @@ from unittest.mock import patch, MagicMock
 # Add the src directory to the path so we can import our modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from redmine_mcp_server.redmine_scheduler import RedmineSyncScheduler
+from redmine_mcp_server.scheduler.tasks import RedmineSyncScheduler
 
 
 class TestRedmineSyncScheduler(unittest.TestCase):
@@ -29,11 +29,11 @@ class TestRedmineSyncScheduler(unittest.TestCase):
         self.env_patcher.start()
         
         # Mock warehouse
-        self.warehouse_patcher = patch('redmine_mcp_server.scheduler.DataWarehouse')
+        self.warehouse_patcher = patch('redmine_mcp_server.scheduler.tasks.DataWarehouse')
         self.mock_warehouse = self.warehouse_patcher.start()
-        
+
         # Mock requests
-        self.requests_patcher = patch('redmine_mcp_server.scheduler.requests')
+        self.requests_patcher = patch('redmine_mcp_server.scheduler.tasks.requests')
         self.mock_requests = self.requests_patcher.start()
         
     def tearDown(self):

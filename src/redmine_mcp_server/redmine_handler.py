@@ -2014,7 +2014,7 @@ async def subscribe_project(
     Returns:
         Subscription result
     """
-    from .subscriptions import get_subscription_manager
+    from .dws.services.subscription_service import get_subscription_manager
 
     # Get current user ID (from context or default)
     # TODO: Implement user context retrieval
@@ -2050,7 +2050,7 @@ async def unsubscribe_project(project_id: Optional[int] = None) -> Dict[str, Any
     Returns:
         Unsubscription result
     """
-    from .subscriptions import get_subscription_manager
+    from .dws.services.subscription_service import get_subscription_manager
 
     user_id = "default_user"
     manager = get_subscription_manager()
@@ -2066,7 +2066,7 @@ async def list_my_subscriptions() -> List[Dict[str, Any]]:
     Returns:
         Subscription list
     """
-    from .subscriptions import get_subscription_manager
+    from .dws.services.subscription_service import get_subscription_manager
 
     user_id = "default_user"
     manager = get_subscription_manager()
@@ -2082,7 +2082,7 @@ async def get_subscription_stats() -> Dict[str, Any]:
     Returns:
         Statistics data
     """
-    from .subscriptions import get_subscription_manager
+    from .dws.services.subscription_service import get_subscription_manager
 
     manager = get_subscription_manager()
     return manager.get_stats()

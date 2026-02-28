@@ -6,6 +6,7 @@ Redmine MCP - Issue Management Tools
 Tools for managing Redmine issues.
 """
 
+from typing import Dict, Any, List, Optional, Union
 from ..server import mcp, redmine, logger
 
 

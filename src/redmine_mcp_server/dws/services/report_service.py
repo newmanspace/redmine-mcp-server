@@ -8,7 +8,7 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 
 from .redmine_warehouse import DataWarehouse
-from .subscriptions import SubscriptionManager
+from .subscription_service import SubscriptionManager
 
 logger = logging.getLogger(__name__)
 

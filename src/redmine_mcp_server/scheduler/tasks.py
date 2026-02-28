@@ -55,7 +55,7 @@ class RedmineSyncScheduler:
     def _load_subscribed_projects(self) -> List[int]:
         """Load subscribed project IDs from subscription manager"""
         try:
-            from .subscriptions import get_subscription_manager
+            from ..dws.services.subscription_service import get_subscription_manager
 
             manager = get_subscription_manager()
             all_subs = manager.list_all_subscriptions()

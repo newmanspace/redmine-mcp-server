@@ -4,20 +4,6 @@
 MCP Server - Main Entry Point
 """
 
-from .tools import (
-    issue_tools,
-    project_tools,
-    wiki_tools,
-    attachment_tools,
-    search_tools,
-    subscription_tools,
-    subscription_push_tools,  # New: Subscription push tools
-    warehouse_tools,
-    analytics_tools,
-    contributor_tools,
-    ads_tools,
-    ods_sync_tools,
-)
 import os
 import logging
 from dotenv import load_dotenv
@@ -49,6 +35,21 @@ mcp = FastMCP("Redmine")
 logger.info("MCP server initialized")
 
 # Import all tool modules (auto-register tools with MCP)
+# Import after mcp initialization to avoid circular import
+from .tools import (
+    issue_tools,
+    project_tools,
+    wiki_tools,
+    attachment_tools,
+    search_tools,
+    subscription_tools,
+    subscription_push_tools,
+    warehouse_tools,
+    analytics_tools,
+    contributor_tools,
+    ads_tools,
+    ods_sync_tools,
+)
 
 logger.info("All tool modules loaded")
 
