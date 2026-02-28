@@ -459,6 +459,11 @@ def sync_ods_incremental(project_ids: Optional[List[int]] = None) -> Dict[str, A
     """
     Run incremental ODS sync for projects
 
+    Sync order:
+    1. Projects (base metadata)
+    2. Users (user information)
+    3. Issues (with journals included)
+
     Args:
         project_ids: Projects to sync (all subscribed if None)
 
@@ -468,7 +473,13 @@ def sync_ods_incremental(project_ids: Optional[List[int]] = None) -> Dict[str, A
     from .subscription_service import SubscriptionManager
 
     sync_service = ODSSyncService()
-    results = {"projects": {}, "total_fetched": 0, "total_synced": 0}
+    results = {
+        "projects": {},
+        "total_projects_synced": 0,
+        "total_users_synced": 0,
+        "total_issues_fetched": 0,
+        "total_issues_synced": 0,
+    }
 
     try:
         # Load subscribed projects if not specified
@@ -483,12 +494,25 @@ def sync_ods_incremental(project_ids: Optional[List[int]] = None) -> Dict[str, A
             )
             logger.info(f"Syncing {len(project_ids)} subscribed projects")
 
+        # Step 1: Sync projects metadata first
+        logger.info("Step 1: Syncing project metadata...")
+        results["total_projects_synced"] = sync_service.sync_ods_projects(project_ids)
+
+        # Step 2: Sync users
+        logger.info("Step 2: Syncing user information...")
+        results["total_users_synced"] = sync_service.sync_ods_users()
+
+        # Step 3: Sync issues (with journals)
+        logger.info("Step 3: Syncing issues and journals...")
         for project_id in project_ids:
             try:
                 fetched, synced = sync_service.sync_ods_issues_incremental(project_id)
-                results["projects"][project_id] = {"fetched": fetched, "synced": synced}
-                results["total_fetched"] += fetched
-                results["total_synced"] += synced
+                results["projects"][project_id] = {
+                    "fetched": fetched,
+                    "synced": synced,
+                }
+                results["total_issues_fetched"] += fetched
+                results["total_issues_synced"] += synced
             except Exception as e:
                 results["projects"][project_id] = {"error": str(e)}
 
@@ -505,6 +529,11 @@ def sync_ods_full(
     """
     Run full ODS sync for projects (force refresh)
 
+    Sync order:
+    1. Projects (base metadata)
+    2. Users (user information)
+    3. Issues (with journals included)
+
     Args:
         project_ids: Projects to sync (all subscribed if None)
         from_date: Optional start date
@@ -515,7 +544,13 @@ def sync_ods_full(
     from .subscription_service import SubscriptionManager
 
     sync_service = ODSSyncService()
-    results = {"projects": {}, "total_fetched": 0, "total_synced": 0}
+    results = {
+        "projects": {},
+        "total_projects_synced": 0,
+        "total_users_synced": 0,
+        "total_issues_fetched": 0,
+        "total_issues_synced": 0,
+    }
 
     try:
         # Load subscribed projects if not specified
@@ -530,14 +565,27 @@ def sync_ods_full(
             )
             logger.info(f"Full sync for {len(project_ids)} subscribed projects")
 
+        # Step 1: Sync projects metadata first
+        logger.info("Step 1: Syncing project metadata...")
+        results["total_projects_synced"] = sync_service.sync_ods_projects(project_ids)
+
+        # Step 2: Sync users
+        logger.info("Step 2: Syncing user information...")
+        results["total_users_synced"] = sync_service.sync_ods_users()
+
+        # Step 3: Sync issues (with journals)
+        logger.info("Step 3: Syncing issues and journals...")
         for project_id in project_ids:
             try:
                 fetched, synced = sync_service.sync_ods_issues_full(
                     project_id, from_date
                 )
-                results["projects"][project_id] = {"fetched": fetched, "synced": synced}
-                results["total_fetched"] += fetched
-                results["total_synced"] += synced
+                results["projects"][project_id] = {
+                    "fetched": fetched,
+                    "synced": synced,
+                }
+                results["total_issues_fetched"] += fetched
+                results["total_issues_synced"] += synced
             except Exception as e:
                 results["projects"][project_id] = {"error": str(e)}
 
