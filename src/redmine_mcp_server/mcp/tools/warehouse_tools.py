@@ -27,7 +27,6 @@ async def unsubscribe_project(project_id: Optional[int] = None) -> Dict[str, Any
     result = manager.unsubscribe(user_id=user_id, project_id=project_id)
 
     # Close warehouse connection
-    manager.close()
 
     return result
 
@@ -48,7 +47,6 @@ async def list_my_subscriptions() -> List[Dict[str, Any]]:
     result = manager.get_user_subscriptions(user_id)
 
     # Close warehouse connection
-    manager.close()
 
     return result
 
@@ -67,7 +65,6 @@ async def get_subscription_stats() -> Dict[str, Any]:
     result = manager.get_stats()
 
     # Close warehouse connection
-    manager.close()
 
     return result
 

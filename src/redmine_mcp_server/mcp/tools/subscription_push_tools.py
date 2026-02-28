@@ -65,7 +65,6 @@ async def push_subscription_reports(
                     }
                 )
 
-            manager.close()
         else:
             if report_type == "daily":
                 results = service.push_due_subscriptions("daily")

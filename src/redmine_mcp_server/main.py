@@ -147,6 +147,16 @@ if __name__ == "__main__":
         if shutdown_sync_scheduler:
             shutdown_sync_scheduler()
 
+        # Close subscription manager connection
+        try:
+            from .dws.services import subscription_service
+
+            if subscription_service.subscription_manager:
+                subscription_service.subscription_manager.close()
+                logger.info("Subscription manager connection closed")
+        except Exception as e:
+            logger.error(f"Error closing subscription manager: {e}")
+
         sys.exit(0)
 
     signal.signal(signal.SIGINT, signal_handler)

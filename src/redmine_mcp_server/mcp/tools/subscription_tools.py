@@ -374,7 +374,6 @@ async def subscribe_project(
     )
 
     # Close warehouse connection
-    manager.close()
 
     return result
 
