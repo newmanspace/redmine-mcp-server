@@ -24,6 +24,12 @@ import os
 def run_tests(test_type="unit", specific_file=None, coverage=False, verbose=False):
     """Run tests based on the specified type."""
 
+    # Set PYTHONPATH to include src directory
+    env = os.environ.copy()
+    src_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'src')
+    if src_path not in env.get('PYTHONPATH', ''):
+        env['PYTHONPATH'] = src_path + os.pathsep + env.get('PYTHONPATH', '')
+
     # Base pytest command
     cmd = ["python", "-m", "pytest"]
 
@@ -69,6 +75,7 @@ def run_tests(test_type="unit", specific_file=None, coverage=False, verbose=Fals
         result = subprocess.run(
             cmd,
             cwd=os.path.dirname(os.path.abspath(__file__)) + "/..",
+            env=env,
             capture_output=False,
             text=True,
         )

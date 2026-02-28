@@ -23,7 +23,7 @@ REDMINE_API_KEY = os.getenv("REDMINE_API_KEY")
 
 if REDMINE_URL and REDMINE_API_KEY:
     try:
-        redmine = Redmine(REDMINE_URL, api_key=REDMINE_API_KEY)
+        redmine = Redmine(REDMINE_URL, key=REDMINE_API_KEY)
         logger.info("Redmine client initialized successfully")
     except Exception as e:
         logger.warning(f"Failed to initialize Redmine client: {e}")

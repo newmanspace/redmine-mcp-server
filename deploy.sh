@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Docker deployment script for Redmine MCP Server
-# This script builds and deploys the Docker container with proper configuration
+# This script builds and deploys the Docker container using docker compose
 
 set -e  # Exit on error
 
@@ -11,7 +11,6 @@ echo "========================================"
 # Configuration
 CONTAINER_NAME="redmine-mcp-server"
 IMAGE_NAME="redmine-mcp"
-NETWORK_NAME="redmine-mcp-network"
 
 # Function to check if Docker is running
 check_docker() {
@@ -45,71 +44,54 @@ build_image() {
     
     if [ "$force_rebuild" = true ]; then
         echo "🔨 Force building Docker image (no cache)..."
-        docker build --no-cache --force-rm -t $IMAGE_NAME:latest .
+        docker compose build --no-cache --force-rm redmine-mcp-server
     else
         echo "🔨 Building Docker image..."
-        docker build -t $IMAGE_NAME:latest .
+        docker compose build redmine-mcp-server
     fi
     echo "✅ Docker image built successfully"
 }
 
-# Function to create Docker network
-create_network() {
-    if ! docker network ls | grep -q $NETWORK_NAME; then
-        echo "🌐 Creating Docker network: $NETWORK_NAME"
-        docker network create $NETWORK_NAME
-    else
-        echo "✅ Docker network $NETWORK_NAME already exists"
-    fi
-}
-
 # Function to stop and remove existing container
 cleanup_container() {
-    if docker ps -q -f name=$CONTAINER_NAME | grep -q .; then
-        echo "🛑 Stopping existing container..."
-        docker stop $CONTAINER_NAME
-    fi
-
+    echo "🛑 Stopping existing services..."
+    docker compose down --remove-orphans
+    
+    # Force remove old container if it still exists
     if docker ps -aq -f name=$CONTAINER_NAME | grep -q .; then
-        echo "🗑️  Removing existing container..."
-        docker rm $CONTAINER_NAME
+        echo "🗑️  Force removing old container..."
+        docker rm -f $CONTAINER_NAME 2>/dev/null || true
     fi
 }
 
 # Function to run the container
 run_container() {
-    echo "🚀 Starting container..."
-    docker run -d \
-        --name $CONTAINER_NAME \
-        --network $NETWORK_NAME \
-        -p 8000:8000 \
-        --env-file .env.docker \
-        -v "$(pwd)/logs:/app/logs" \
-        -v "$(pwd)/data:/app/data" \
-        --restart unless-stopped \
-        $IMAGE_NAME:latest
-
-    echo "✅ Container started successfully"
+    echo "🚀 Starting services..."
+    docker compose up -d
+    
+    echo "✅ Services started successfully"
     echo "📊 Container status:"
-    docker ps -f name=$CONTAINER_NAME --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+    docker compose ps
 }
 
 # Function to show logs
 show_logs() {
     echo "📋 Container logs (last 20 lines):"
     echo "--------------------------------"
-    docker logs --tail 20 $CONTAINER_NAME
+    docker compose logs --tail=20 redmine-mcp-server
     echo "--------------------------------"
-    echo "💡 To follow logs: docker logs -f $CONTAINER_NAME"
+    echo "💡 To follow logs: docker compose logs -f redmine-mcp-server"
 }
 
 # Function to test the deployment
 test_deployment() {
     echo "🧪 Testing deployment..."
-    sleep 5  # Wait for container to start
+    sleep 10  # Wait for container to start
 
     if curl -s -f http://localhost:8000/health > /dev/null 2>&1; then
         echo "✅ Health check passed"
+        echo "📊 Health response:"
+        curl -s http://localhost:8000/health | python3 -m json.tool 2>/dev/null || curl -s http://localhost:8000/health
     else
         echo "⚠️  Health check failed - checking if server is starting..."
         sleep 10
@@ -118,7 +100,7 @@ test_deployment() {
         else
             echo "❌ Health check failed"
             echo "🔍 Container logs:"
-            docker logs --tail 10 $CONTAINER_NAME
+            docker compose logs --tail=20 redmine-mcp-server
         fi
     fi
 }
@@ -128,27 +110,29 @@ show_usage() {
     cat << EOF
 🐳 Redmine MCP Server Docker Deployment Script
 
-Usage: $0 [OPTIONS]
+Usage: \$0 [OPTIONS]
 
 Options:
     --build-only       Build the Docker image only
     --force-rebuild    Force rebuild without cache
     --no-test          Skip deployment testing
-    --cleanup          Stop and remove container
+    --cleanup          Stop and remove services
     --logs             Show container logs
     --status           Show container status
     --help             Show this help message
 
 Examples:
-    $0                  # Full deployment (build + run + test)
-    $0 --build-only     # Build image only
-    $0 --force-rebuild  # Force rebuild with no cache
-    $0 --cleanup        # Clean up existing deployment
-    $0 --logs           # Show current container logs
-    $0 --status         # Show container status
+    \$0                  # Full deployment (build + run + test)
+    \$0 --build-only     # Build image only
+    \$0 --force-rebuild  # Force rebuild with no cache
+    \$0 --cleanup        # Clean up existing deployment
+    \$0 --logs           # Show current container logs
+    \$0 --status         # Show container status
 
-Container will be available at: http://localhost:8000
-MCP endpoint: http://localhost:8000/mcp
+Services will be available at:
+    Server: http://localhost:8000
+    Health: http://localhost:8000/health
+    MCP:    http://localhost:8000/mcp
 
 EOF
 }
@@ -210,7 +194,7 @@ main() {
 
     if [ "$STATUS_ONLY" = true ]; then
         echo "📊 Container status:"
-        docker ps -f name=$CONTAINER_NAME --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+        docker compose ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
         exit 0
     fi
 
@@ -228,7 +212,6 @@ main() {
         exit 0
     fi
 
-    create_network
     cleanup_container
     run_container
 
@@ -240,8 +223,8 @@ main() {
     echo "🎉 Deployment completed!"
     echo "🌐 Server URL: http://localhost:8000"
     echo "🔗 MCP Endpoint: http://localhost:8000/mcp"
-    echo "📋 View logs: docker logs -f $CONTAINER_NAME"
-    echo "🛑 Stop container: docker stop $CONTAINER_NAME"
+    echo "📋 View logs: docker compose logs -f redmine-mcp-server"
+    echo "🛑 Stop services: docker compose down"
 }
 
 # Run main function

@@ -50,6 +50,9 @@ WORKDIR /app
 COPY --chown=appuser:appuser src/ ./src/
 COPY --chown=appuser:appuser README.md ./
 
+# Set PYTHONPATH to use /app/src instead of site-packages
+ENV PYTHONPATH=/app/src:$PYTHONPATH
+
 # Create directories for logs and data
 RUN mkdir -p /app/logs /app/data && \
     chown -R appuser:appuser /app

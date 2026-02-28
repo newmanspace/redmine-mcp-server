@@ -10,6 +10,7 @@ Redmine MCP - Wiki Management Tools
 """
 
 from ..server import mcp, redmine, logger
+from ...redmine_handler import _handle_redmine_error
 
 
 @mcp.tool()

@@ -34,6 +34,8 @@ A Model Context Protocol (MCP) server that integrates with Redmine project manag
 - **Flexible Authentication**: Username/password or API key
 - **File Management**: Automatic cleanup of expired files with storage statistics
 - **Docker Ready**: Complete containerization support
+- **Health Monitoring**: Built-in `/health` endpoint for monitoring and load balancers
+- **Multi-language Support**: Bilingual documentation (English/Chinese)
 - **Pagination Support**: Efficiently handle large issue lists with configurable limits
 
 ## Quick Start
@@ -45,11 +47,32 @@ A Model Context Protocol (MCP) server that integrates with Redmine project manag
 2. **Create a `.env` file** with your Redmine credentials (see [Installation](#installation) for template)
 3. **Start the server**
    ```bash
+   # Option 1: Using console script
    redmine-mcp-server
+   
+   # Option 2: Using Python module
+   python -m redmine_mcp_server
+   
+   # Option 3: Using uvicorn directly
+   python -m uvicorn redmine_mcp_server.main:app --host 0.0.0.0 --port 8000
    ```
 4. **Add the server to your MCP client** using one of the guides in [MCP Client Configuration](#mcp-client-configuration).
 
-Once running, the server listens on `http://localhost:8000` with the MCP endpoint at `/mcp`, health check at `/health`, and file serving at `/files/{file_id}`.
+Once running, the server listens on `http://localhost:8000` with:
+- MCP endpoint at `/mcp`
+- Health check at `/health`
+- Root endpoint at `/`
+- File serving at `/files/{file_id}`
+
+### Quick Health Check
+
+```bash
+# Test health endpoint
+curl http://localhost:8000/health
+
+# Expected response:
+# {"status":"healthy","version":"0.10.0","timestamp":"..."}
+```
 
 ## Installation
 
@@ -97,7 +120,33 @@ nano .env  # or use your preferred editor
 # Run the server
 redmine-mcp-server
 # Or alternatively:
-python -m redmine_mcp_server.main
+python -m redmine_mcp_server
+
+# Test installation
+python -m pytest tests/unit/ -v
+```
+
+### Development Setup
+
+```bash
+# Clone and install in development mode
+git clone https://github.com/jztan/redmine-mcp-server.git
+cd redmine-mcp-server
+pip install -e .[test,dev]
+
+# Run tests
+python -m pytest tests/ -v
+
+# Run specific test types
+python -m pytest tests/unit/ -v        # Unit tests
+python -m pytest tests/services/ -v    # Service tests
+python -m pytest tests/integration/ -v # Integration tests (requires setup)
+
+# Run with coverage
+python -m pytest tests/ --cov=redmine_mcp_server --cov-report=html
+
+# Use test runner script
+python tests/run_tests.py --all --verbose
 ```
 
 The server runs on `http://localhost:8000` with the MCP endpoint at `/mcp`, health check at `/health`, and file serving at `/files/{file_id}`.
@@ -369,11 +418,14 @@ cp .env.example .env.docker
 # Edit .env.docker with your Redmine settings
 
 # Run with docker-compose
-docker-compose up --build
+docker compose up --build
 
 # Or run directly
 docker build -t redmine-mcp-server .
 docker run -p 8000:8000 --env-file .env.docker redmine-mcp-server
+
+# Test health endpoint
+curl http://localhost:8000/health
 ```
 
 ### Production Deployment
@@ -383,6 +435,12 @@ Use the automated deployment script:
 ```bash
 chmod +x deploy.sh
 ./deploy.sh
+
+# Force rebuild (no cache)
+./deploy.sh --force-rebuild
+
+# Check options
+./deploy.sh --help
 ```
 
 ## Troubleshooting
