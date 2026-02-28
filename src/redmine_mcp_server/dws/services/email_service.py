@@ -171,17 +171,17 @@ def send_subscription_email(
     language: str = "zh_CN"
 ) -> Dict[str, Any]:
     """
-    发送订阅报告邮件（多语言支持）
+    Send subscription report email (multi-language support)
 
     Args:
-        to_email: 收件人邮箱
-        project_name: 项目名称
-        report: 报告数据（包含 stats 和可选的 trend_analysis）
-        level: 报告级别 (brief/detailed/comprehensive)
-        language: 语言 (zh_CN/en_US)
+        to_email: Recipient email
+        project_name: Project name
+        report: Report data (contains stats and optional trend_analysis)
+        level: Report level (brief/detailed/comprehensive)
+        language: Language (zh_CN/en_US)
 
     Returns:
-        发送结果
+        Send result
     """
     service = get_email_service()
 
@@ -212,7 +212,7 @@ def _generate_email_body(
     level: str = "brief",
     language: str = "zh_CN"
 ) -> str:
-    """生成邮件 HTML 内容（多语言支持）"""
+    """Generate email HTML content (multi-language support)"""
     stats = report.get('stats', {})
     report_type = report.get('type', 'daily')
     
