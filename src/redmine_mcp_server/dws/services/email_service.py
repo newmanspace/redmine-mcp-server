@@ -175,7 +175,7 @@ def send_subscription_email(
         date_info = report.get("month", datetime.now().strftime("%Y-%m"))
 
     # Import i18n
-    from ..i18n import format_email_subject
+    from ...i18n import format_email_subject
 
     subject = format_email_subject(report_type, project_name, date_info, language)
 
