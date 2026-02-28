@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-报告生成服务
+Report Generation Service
 
-生成日报/周报/月报，包含趋势分析
+Generates daily/weekly/monthly reports with trend analysis.
 """
 
 import os
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class ReportGenerationService:
-    """报告生成服务"""
+    """Report Generation Service"""
 
     def __init__(self):
         self.redmine_url = os.getenv('REDMINE_URL')
@@ -37,12 +37,12 @@ class ReportGenerationService:
         return resp.json()
 
     def get_project_stats(self, project_id: int) -> Dict[str, Any]:
-        """获取项目基础统计数据"""
+        """Get basic project statistics"""
         try:
             all_issues = []
             offset = 0
             limit = 100
-            
+
             while True:
                 data = self.redmine_get("issues.json", {
                     'project_id': project_id,
@@ -52,12 +52,12 @@ class ReportGenerationService:
                 })
                 issues = data.get('issues', [])
                 all_issues.extend(issues)
-                
+
                 if len(issues) < limit:
                     break
                 offset += limit
-            
-            # 基础统计
+
+            # Basic statistics
             total = len(all_issues)
             open_count = sum(1 for i in all_issues if i.get('status', {}).get('name') != '已关闭')
             closed_count = sum(1 for i in all_issues if i.get('status', {}).get('name') == '已关闭')
@@ -142,16 +142,16 @@ class ReportGenerationService:
         trend_days: int = 7
     ) -> Dict[str, Any]:
         """
-        生成日报
+        Generate daily report
 
         Args:
-            project_id: 项目 ID
-            level: 报告级别 (brief/detailed/comprehensive)
-            include_trend: 是否包含趋势
-            trend_days: 趋势分析天数
+            project_id: Project ID
+            level: Report level (brief/detailed/comprehensive)
+            include_trend: Include trend analysis
+            trend_days: Trend analysis period in days
 
         Returns:
-            日报数据
+            Daily report data
         """
         stats = self.get_project_stats(project_id)
         if not stats:
@@ -165,14 +165,14 @@ class ReportGenerationService:
             'stats': stats
         }
 
-        # 根据级别添加内容
+        # Add content based on level
         if level in ['detailed', 'comprehensive']:
-            # 详细报告包含高优先级 Issue 和人员负载
+            # Detailed report includes high priority issues and team workload
             report['high_priority_issues'] = stats['high_priority_issues']
             report['top_assignees'] = stats['top_assignees']
 
         if level == 'comprehensive':
-            # 综合报告包含趋势分析
+            # Comprehensive report includes trend analysis
             if include_trend:
                 trend_data = self.trend_service.analyze_daily_trend(project_id, trend_days)
                 report['trend_analysis'] = trend_data
@@ -187,7 +187,7 @@ class ReportGenerationService:
         trend_weeks: int = 4
     ) -> Dict[str, Any]:
         """
-        生成周报
+        Generate weekly report
 
         Args:
             project_id: 项目 ID
