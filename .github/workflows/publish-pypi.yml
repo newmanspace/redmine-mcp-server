@@ -24,8 +24,6 @@ jobs:
           uv venv
           source .venv/bin/activate
           uv pip install -e .[test]
-      - name: Generate test SSL certificates
-        run: bash tests/fixtures/ssl/generate-test-certs.sh
       - name: Run tests with coverage
         run: |
           source .venv/bin/activate
