@@ -172,6 +172,7 @@ class SubscriptionManager:
                     """,
                         (subscription_id,),
                     )
+                conn.commit()  # Commit the delete transaction
         except Exception as e:
             logger.error(f"Failed to delete subscription from database: {e}")
 

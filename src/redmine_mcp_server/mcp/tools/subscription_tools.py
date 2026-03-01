@@ -380,6 +380,77 @@ async def subscribe_project(
 
 
 @mcp.tool()
+async def list_my_subscriptions() -> Dict[str, Any]:
+    """
+    List all my subscriptions
+
+    Returns:
+        List of subscriptions
+    """
+    from ...dws.services.subscription_service import get_subscription_manager
+
+    try:
+        manager = get_subscription_manager()
+        subscriptions = manager.list_all_subscriptions()
+        
+        return {
+            "success": True,
+            "subscriptions": subscriptions,
+            "count": len(subscriptions)
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@mcp.tool()
+async def unsubscribe_project(
+    project_id: Optional[int] = None,
+    user_id: Optional[str] = None,
+    channel: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Unsubscribe from project(s)
+
+    Args:
+        project_id: Project ID to unsubscribe (optional, unsubscribes all if not provided)
+        user_id: User ID (optional, uses 'anonymous' if not provided)
+        channel: Channel to unsubscribe (optional)
+
+    Returns:
+        Unsubscribe result
+    """
+    from ...dws.services.subscription_service import get_subscription_manager
+
+    try:
+        manager = get_subscription_manager()
+        
+        # Use default user_id if not provided
+        if not user_id:
+            user_id = 'anonymous'
+        
+        if project_id:
+            # Unsubscribe specific project
+            result = manager.unsubscribe(user_id=user_id, project_id=project_id, channel=channel)
+        else:
+            # Unsubscribe all for user
+            result = manager.unsubscribe_all(user_id=user_id)
+        
+        return {
+            "success": True,
+            "message": f"Unsubscribed from project {project_id}" if project_id else "Unsubscribed from all projects",
+            "details": result
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@mcp.tool()
 async def test_email_service(to_email: Optional[str] = None) -> Dict[str, Any]:
     """
     Test email service configuration

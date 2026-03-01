@@ -18,7 +18,7 @@ async def get_sync_progress() -> Dict[str, Any]:
     Returns:
         Sync progress status
     """
-    from ...scheduler.ads_scheduler import get_scheduler
+    from ...scheduler.tasks import get_scheduler
 
     scheduler = get_scheduler()
 
@@ -63,7 +63,7 @@ async def analyze_dev_tester_workload(
         Analysis report
     """
     from .dev_test_analyzer import DevTestAnalyzer, analyze_project, analyze_projects
-    from ...scheduler.ads_scheduler import get_scheduler
+    from ...scheduler.tasks import get_scheduler
 
     try:
         if project_id:
@@ -107,7 +107,7 @@ async def backfill_historical_data(
         Backfill result
     """
     from .backfill_sync import BackfillSync, backfill_all_projects
-    from ...scheduler.ads_scheduler import get_scheduler
+    from ...scheduler.tasks import get_scheduler
 
     try:
         if project_id:

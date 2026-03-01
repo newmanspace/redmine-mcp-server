@@ -1,10 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-Configuration file for pytest.
-
-This file configures pytest markers and test settings for the Redmine MCP server tests.
+Pytest Configuration and Fixtures
 """
 
 import pytest
+import os
 
 
 def pytest_configure(config):
@@ -16,6 +17,14 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers",
         "unit: mark tests as unit tests (use mocks, no external dependencies)",
+    )
+    config.addinivalue_line(
+        "markers",
+        "db_schema: mark test as requiring real database (skip in CI)"
+    )
+    config.addinivalue_line(
+        "markers",
+        "e2e: mark test as end-to-end test requiring real database (skip in CI)"
     )
 
 
@@ -60,3 +69,36 @@ def mock_api_key_env(monkeypatch):
     # Remove username/password if they exist
     monkeypatch.delenv("REDMINE_USERNAME", raising=False)
     monkeypatch.delenv("REDMINE_PASSWORD", raising=False)
+
+
+@pytest.fixture(scope="session")
+def test_database_url():
+    """Get test database URL from environment.
+    
+    Default: PostgreSQL test database for Redmine Warehouse
+    - User: redmine_warehouse_test (semantic name for testing)
+    - Database: redmine_warehouse_test (isolated test database)
+    
+    Skip tests if TEST_DATABASE_URL is not set.
+    This is used for DB schema and E2E tests.
+    """
+    url = os.environ.get('TEST_DATABASE_URL')
+    if not url:
+        # Default to test database configuration with semantic naming
+        # Note: Password is URL-encoded to handle special characters
+        url = "postgresql://redmine_warehouse_test:TestWarehouseP%40ss2026@localhost:5432/redmine_warehouse_test"
+    return url
+
+
+@pytest.fixture(autouse=True)
+def setup_test_env(monkeypatch):
+    """Setup test environment variables for E2E tests.
+    
+    Configures database connection to use test database instead of Docker network.
+    """
+    # Set warehouse database connection for E2E tests
+    monkeypatch.setenv('WAREHOUSE_DB_HOST', 'localhost')
+    monkeypatch.setenv('WAREHOUSE_DB_PORT', '5432')
+    monkeypatch.setenv('WAREHOUSE_DB_NAME', 'redmine_warehouse_test')
+    monkeypatch.setenv('WAREHOUSE_DB_USER', 'redmine_warehouse_test')
+    monkeypatch.setenv('WAREHOUSE_DB_PASSWORD', 'TestWarehouseP@ss2026')

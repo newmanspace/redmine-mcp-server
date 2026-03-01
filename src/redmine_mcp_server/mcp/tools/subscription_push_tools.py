@@ -173,7 +173,7 @@ async def get_subscription_scheduler_status() -> Dict[str, Any]:
         Scheduler status information
     """
     try:
-        from ..scheduler.subscription_scheduler import get_subscription_scheduler
+        from ...scheduler.subscription_scheduler import get_subscription_scheduler
 
         scheduler = get_subscription_scheduler()
 

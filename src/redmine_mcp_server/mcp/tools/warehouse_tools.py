@@ -104,7 +104,7 @@ async def trigger_full_sync(project_id: Optional[int] = None) -> Dict[str, Any]:
     Returns:
         Sync result
     """
-    from ...scheduler.ads_scheduler import get_scheduler
+    from ...scheduler.tasks import get_scheduler
     from ..dws.repository import DataWarehouse
 
     scheduler = get_scheduler()
@@ -161,7 +161,7 @@ async def trigger_progressive_sync() -> Dict[str, Any]:
     Returns:
         Sync result
     """
-    from ...scheduler.ads_scheduler import get_scheduler
+    from ...scheduler.tasks import get_scheduler
 
     scheduler = get_scheduler()
 

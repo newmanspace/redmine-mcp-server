@@ -44,14 +44,20 @@ jobs:
         run: |
           source .venv/bin/activate
           python -m pytest tests/unit/ -v --cov=src/redmine_mcp_server/core --cov-report=xml:coverage-unit-${{ matrix.python-version }}.xml
+      
       - name: Run service tests
         run: |
           source .venv/bin/activate
           python -m pytest tests/services/ -v --cov=src/redmine_mcp_server/dws/services --cov-report=xml:coverage-service-${{ matrix.python-version }}.xml
-      - name: Run integration tests (non-slow)
+      
+      - name: Run integration tests (Mock DB only)
         run: |
           source .venv/bin/activate
-          python -m pytest tests/integration/ -v -m "not slow" -k "not (redmine or warehouse)" --cov=src/redmine_mcp_server --cov-report=xml:coverage-integration-${{ matrix.python-version }}.xml
+          # Skip DB schema and E2E tests in CI - these run locally only
+          # Run with: pytest -m "not db_schema and not e2e"
+          python -m pytest tests/integration/test_mcp_integration.py -v
+          python -m pytest tests/integration/ -v -m "not db_schema and not e2e and not slow"
+      
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
