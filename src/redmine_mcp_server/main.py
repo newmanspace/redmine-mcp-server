@@ -1,7 +1,6 @@
 import logging
 import os
 import sys
-from contextlib import asynccontextmanager
 from datetime import datetime
 from importlib.metadata import version, PackageNotFoundError
 
@@ -48,14 +47,13 @@ def get_version() -> str:
         return "dev"
 
 
-@asynccontextmanager
-async def lifespan(app):
-    """Lifespan context manager for startup/shutdown"""
+# Initialize schedulers at module level (runs on import)
+def _initialize_schedulers():
+    """Initialize schedulers when module is imported"""
     logger.info(f"Redmine MCP Server v{get_version()} starting...")
 
-    # Initialize schedulers on startup
+    # 1. Initialize subscription manager
     try:
-        # 1. Initialize subscription manager
         from .dws.services import subscription_service
 
         subscription_service.init_subscription_manager()
@@ -83,24 +81,9 @@ async def lifespan(app):
             logger.error(f"Failed to start sync scheduler: {e}")
             logger.warning("Continuing without sync scheduler")
 
-    yield
 
-    # Shutdown
-    logger.info("Shutting down...")
-    if shutdown_subscription_scheduler:
-        shutdown_subscription_scheduler()
-    if shutdown_sync_scheduler:
-        shutdown_sync_scheduler()
-
-    # Close subscription manager connection
-    try:
-        from .dws.services import subscription_service
-
-        if subscription_service.subscription_manager:
-            subscription_service.subscription_manager.close()
-            logger.info("Subscription manager connection closed")
-    except Exception as e:
-        logger.error(f"Error closing subscription manager: {e}")
+# Initialize schedulers when running with uvicorn (imported)
+_initialize_schedulers()
 
 
 # Apply settings at module level
@@ -109,7 +92,7 @@ mcp.settings.port = int(os.getenv("SERVER_PORT", "8000"))
 mcp.settings.stateless_http = True
 
 # Export the Starlette/FastAPI app for testing and external use
-app = mcp.streamable_http_app(lifespan=lifespan)
+app = mcp.streamable_http_app()
 
 
 # Add health check endpoint
