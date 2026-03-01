@@ -23,7 +23,7 @@ async def trigger_contributor_sync(
         同步结果
     """
     from .dev_test_analyzer import DevTestAnalyzer
-    from .redmine_warehouse import DataWarehouse
+    from ..dws.repository import DataWarehouse
 
     try:
         if not redmine:

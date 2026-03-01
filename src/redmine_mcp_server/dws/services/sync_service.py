@@ -10,8 +10,8 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 import requests
 
-from .redmine_warehouse import DataWarehouse
-from .redmine_handler import REDMINE_URL, REDMINE_API_KEY, logger
+from ..repository import DataWarehouse
+from ...redmine_handler import REDMINE_URL, REDMINE_API_KEY, logger
 
 
 class BackfillSync:

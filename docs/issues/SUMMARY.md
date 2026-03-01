@@ -1,17 +1,18 @@
 # Redmine MCP Server - Issue Summary
 
-**Last Updated**: 2026-03-01  
-**Status**: All Critical Issues Resolved  
-**Total Issues**: 5
+**Last Updated**: 2026-03-01 13:45  
+**Status**: ISSUE-005 Fix Incomplete  
+**Total Issues**: 8
 
 ---
 
 ## 📊 Quick Stats
 
 ```
-✅ Fixed:   5 (100%)
-⏳ Pending: 0 (0%)
-🔴 High:   5 (100%)
+✅ Fixed:   4 (50%)
+⚠️  Partial: 1 (12.5%)
+⏳ Pending: 3 (37.5%)
+🔴 High:   8 (100%)
 ```
 
 ---
@@ -24,149 +25,72 @@
 | [002](./ISSUE-002-redmine-api-param.md) | Redmine API Parameter Name Error | 🔴 | ✅ Fixed | v0.10.0 |
 | [003](./ISSUE-003-connection-pool-closed.md) | Subscription Push Connection Pool Bug | 🔴 | ✅ Fixed | v0.10.0 |
 | [004](./ISSUE-004-subscription-schema-mismatch.md) | Subscription Table Field Mismatch | 🔴 | ✅ Fixed | v0.10.1 |
-| [005](./ISSUE-005-scheduler-import-error.md) | Scheduler Module Import Error | 🔴 | ✅ Fixed | v0.10.1 |
+| [005](./ISSUE-005-scheduler-import-error.md) | Scheduler Module Import Error | 🔴 | ⚠️ Partial | v0.10.1 |
+| [006](./ISSUE-006-mcp-tools-missing-definitions.md) | MCP Tools Missing Function Definitions | 🔴 | ⏳ Pending | - |
+| [007](./ISSUE-007-scheduler-module-missing.md) | MCP Scheduler Module Missing | 🔴 | ⏳ Pending | - |
+| [008](./ISSUE-008-warehouse-module-missing.md) | MCP Warehouse Module Missing | 🔴 | ⏳ Pending | - |
 
 ---
 
 ## 🎯 Next Actions
 
-### ✅ All Critical Issues Resolved
+### ⚠️ Priority: ISSUE-005 Fix Incomplete
 
-All 5 high-severity issues have been fixed and verified:
+**Problem**: `subscription_push_tools.py` has wrong import path
 
-**v0.10.1 Fixes**:
-- ISSUE-004: Subscription field names match database schema
-- ISSUE-005: Scheduler imports point to correct module
+**File**: `src/redmine_mcp_server/mcp/tools/subscription_push_tools.py:176`
 
-**Testing**:
-- ✅ 86 unit tests passed
-- ✅ 29 service tests passed
-- ✅ All imports verified
+**Fix**:
+```bash
+sed -i 's/from \.\.scheduler/from ...scheduler/g' src/redmine_mcp_server/mcp/tools/subscription_push_tools.py
+```
+
+**Affected Tools**:
+- `get_subscription_scheduler_status` - Still failing
+- `get_sync_progress` - Still failing
+
+### ⏳ Pending Issues
+
+**ISSUE-006**: Missing `_ensure_cleanup_started()` and `VersionMismatchError`
+**ISSUE-007**: Scheduler module deployment
+**ISSUE-008**: Warehouse module deployment
 
 ---
 
-## 📝 Recent Activity
+## 📝 Verification Results (2026-03-01)
 
-### 2026-03-01
-- ✅ Fixed ISSUE-005 (Scheduler Import Error) - Commit 9dcc4ec
-- ✅ Fixed ISSUE-004 (Subscription Schema Mismatch) - Commit 9dcc4ec
-- Updated ISSUE-004 and ISSUE-005 status to Fixed
+### ISSUE-004 (Subscription Schema) - ✅ Verified
+| Tool | Status |
+|------|--------|
+| `list_my_subscriptions` | ✅ Working |
+| `get_subscription_stats` | ✅ Working |
 
-### 2026-02-28
-- ✅ Fixed ISSUE-001 (Import Path Error)
-- ✅ Fixed ISSUE-002 (API Parameter Error)
-- ✅ Fixed ISSUE-003 (Connection Pool Bug)
-- Created ISSUE-004 (Subscription Schema Mismatch)
+### ISSUE-005 (Scheduler Imports) - ⚠️ Partial
+| Tool | Status | Error |
+|------|--------|-------|
+| `get_subscription_scheduler_status` | ❌ | `No module named 'redmine_mcp_server.mcp.scheduler'` |
+| `get_sync_progress` | ❌ | `No module named 'redmine_mcp_server.mcp.tools.redmine_scheduler'` |
+
+**Root Cause**: Wrong import path in `subscription_push_tools.py`
+- Wrong: `from ..scheduler.subscription_scheduler`
+- Correct: `from ...scheduler.subscription_scheduler`
 
 ---
 
 ## 📈 Trend Analysis
 
-### Issue Velocity
 ```
-Week of 2026-02-28:
-- Opened: 5
-- Closed: 3
-- Net Change: +2
-```
-
-### Resolution Rate
-```
-Total Issues:  5
-Resolved:      3
-Resolution Rate: 60%
-Avg Resolution Time: < 1 day
+Total Issues:  8
+Resolved:      4
+Partial:       1
+Pending:       3
+Resolution Rate: 50%
 ```
 
 ---
-
-## 🛠️ Fix History
-
-| Date | Issue | Action | Result |
-|------|-------|--------|--------|
-| 2026-03-01 | ISSUE-005 | Fixed import paths | ✅ Verified |
-| 2026-03-01 | ISSUE-004 | Fixed field names | ✅ Verified |
-| 2026-02-28 | ISSUE-001 | Fixed import paths | ✅ Verified |
-| 2026-02-28 | ISSUE-002 | Fixed API param names | ✅ Verified |
-| 2026-02-28 | ISSUE-003 | Fixed connection pool lifecycle | ✅ Verified |
-
----
-
-## 📋 Resolved Issues Detail
-
-### ✅ ISSUE-004: Subscription Table Field Name Mismatch
-
-**Problem**: Code field names don't match database schema
-
-| Code (Old) | Database (New) |
-|------------|----------------|
-| `frequency` | `report_type` |
-| `level` | `report_level` |
-| `push_time` | `send_time` |
-
-**Files to Fix**:
-- `src/redmine_mcp_server/dws/services/subscription_service.py`
-
-**Fix Command**:
-```bash
-sed -i 's/"frequency"/"report_type"/g' src/redmine_mcp_server/dws/services/subscription_service.py
-sed -i 's/"level"/"report_level"/g' src/redmine_mcp_server/dws/services/subscription_service.py
-sed -i 's/"push_time"/"send_time"/g' src/redmine_mcp_server/dws/services/subscription_service.py
-```
-
----
-
-### ✅ ISSUE-005: Scheduler Module Import Error
-
-**Problem**: Import path points to non-existent module
-
-**Wrong**:
-```python
-from .redmine_scheduler import get_scheduler
-```
-
-**Correct**:
-```python
-from ...scheduler.ads_scheduler import get_scheduler
-```
-
-**Files to Fix**:
-- `src/redmine_mcp_server/mcp/tools/analytics_tools.py`
-- `src/redmine_mcp_server/mcp/tools/warehouse_tools.py`
-
-**Fix Command**:
-```bash
-sed -i 's/from \.redmine_scheduler import get_scheduler/from ...scheduler.ads_scheduler import get_scheduler/' src/redmine_mcp_server/mcp/tools/analytics_tools.py
-sed -i 's/from \.redmine_scheduler import get_scheduler/from ...scheduler.ads_scheduler import get_scheduler/' src/redmine_mcp_server/mcp/tools/warehouse_tools.py
-```
-
----
-
-## 🎯 Goals
-
-### Short-term (This Week)
-- [ ] Fix ISSUE-004 (Subscription Schema)
-- [ ] Fix ISSUE-005 (Scheduler Import)
-- [ ] Achieve 100% resolution rate
-
-### Mid-term (Next Week)
-- [ ] Add integration tests for subscription flow
-- [ ] Add import validation tests
-- [ ] Set up CI/CD checks for common issues
-
-### Long-term (This Month)
-- [ ] Reduce issue creation rate by 50%
-- [ ] Implement automated issue detection
-- [ ] Create comprehensive test coverage
-
----
-
-## 📞 Contact
 
 **Report Tool**: OpenClaw (Jaw)  
 **Workspace**: `/docker/redmine-mcp-server`
 
----
-
-**Last Review**: 2026-03-01  
+**Last Review**: 2026-03-01 13:45  
 **Next Review**: 2026-03-02

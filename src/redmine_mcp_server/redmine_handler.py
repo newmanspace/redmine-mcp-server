@@ -1900,7 +1900,7 @@ async def get_project_daily_stats(
 ) -> Dict[str, Any]:
     """Get project daily statistics with time-series comparison. Uses PostgreSQL warehouse, 97% lower token consumption."""
     from datetime import timedelta
-    from .redmine_warehouse import DataWarehouse
+    from ..dws.repository import DataWarehouse
     import requests
 
     if not redmine:
@@ -2124,7 +2124,7 @@ async def trigger_full_sync(project_id: Optional[int] = None) -> Dict[str, Any]:
         Sync result
     """
     from .redmine_scheduler import get_scheduler
-    from .redmine_warehouse import DataWarehouse
+    from ..dws.repository import DataWarehouse
 
     scheduler = get_scheduler()
 
@@ -2370,7 +2370,7 @@ async def analyze_issue_contributors(issue_id: int) -> Dict[str, Any]:
     Returns:
         贡献者列表和汇总统计
     """
-    from .redmine_warehouse import DataWarehouse
+    from ..dws.repository import DataWarehouse
     from .dev_test_analyzer import DevTestAnalyzer
 
     try:
@@ -2461,7 +2461,7 @@ async def get_project_role_distribution(
         各角色的人员数量
     """
     from datetime import date as date_class
-    from .redmine_warehouse import DataWarehouse
+    from ..dws.repository import DataWarehouse
     from .dev_test_analyzer import DevTestAnalyzer
 
     try:
@@ -2529,7 +2529,7 @@ async def get_user_workload(
         工作量统计信息
     """
     from datetime import datetime
-    from .redmine_warehouse import DataWarehouse
+    from ..dws.repository import DataWarehouse
 
     if not year_month:
         year_month = datetime.now().strftime("%Y-%m")
@@ -2583,7 +2583,7 @@ async def trigger_contributor_sync(
         同步结果
     """
     from .dev_test_analyzer import DevTestAnalyzer
-    from .redmine_warehouse import DataWarehouse
+    from ..dws.repository import DataWarehouse
 
     try:
         if not redmine:

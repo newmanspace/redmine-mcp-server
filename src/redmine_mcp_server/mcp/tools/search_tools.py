@@ -1,3 +1,4 @@
+from redminelib.exceptions import VersionMismatchError
 import os
 from typing import Dict, Any, List, Optional, Union
 
@@ -7,6 +8,7 @@ from typing import Dict, Any, List, Optional, Union
 Redmine MCP - Search Management Tools
 """
 
+from ...redmine_handler import _ensure_cleanup_started
 from ..server import mcp, redmine, logger
 from ...redmine_handler import _handle_redmine_error
 

@@ -23,7 +23,7 @@ async def get_project_role_distribution(
         各角色report for人员数量
     """
     from datetime import date as date_class
-    from .redmine_warehouse import DataWarehouse
+    from ..dws.repository import DataWarehouse
     from .dev_test_analyzer import DevTestAnalyzer
 
     try:
@@ -91,7 +91,7 @@ async def get_user_workload(
         工作量统计信息
     """
     from datetime import datetime
-    from .redmine_warehouse import DataWarehouse
+    from ..dws.repository import DataWarehouse
 
     if not year_month:
         year_month = datetime.now().strftime("%Y-%m")

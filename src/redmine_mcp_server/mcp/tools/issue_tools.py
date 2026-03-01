@@ -7,6 +7,7 @@ Tools for managing Redmine issues.
 """
 
 from typing import Dict, Any, List, Optional, Union
+from ...redmine_handler import _ensure_cleanup_started
 from ..server import mcp, redmine, logger
 from ...redmine_handler import _handle_redmine_error
 

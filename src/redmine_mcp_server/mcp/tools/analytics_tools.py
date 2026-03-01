@@ -169,7 +169,7 @@ async def analyze_issue_contributors(issue_id: int) -> Dict[str, Any]:
     Returns:
         贡献者列表和汇总统计
     """
-    from .redmine_warehouse import DataWarehouse
+    from ..dws.repository import DataWarehouse
     from .dev_test_analyzer import DevTestAnalyzer
 
     try:

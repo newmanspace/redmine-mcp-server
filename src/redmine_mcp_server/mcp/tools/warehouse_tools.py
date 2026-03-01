@@ -105,7 +105,7 @@ async def trigger_full_sync(project_id: Optional[int] = None) -> Dict[str, Any]:
         Sync result
     """
     from ...scheduler.ads_scheduler import get_scheduler
-    from .redmine_warehouse import DataWarehouse
+    from ..dws.repository import DataWarehouse
 
     scheduler = get_scheduler()
 

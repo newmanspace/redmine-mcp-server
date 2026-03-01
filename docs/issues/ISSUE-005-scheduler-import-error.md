@@ -221,3 +221,46 @@ sed -i 's/from \.redmine_scheduler import get_scheduler/from ...scheduler.ads_sc
 **Fixed By**: qwen-code  
 **Fixed Date**: 2026-03-01  
 **Fixed Commit**: 9dcc4ec
+
+---
+
+## ⚠️ 2026-03-01 验证发现：修复不完整
+
+### 验证测试结果
+
+| 工具 | 测试结果 | 错误信息 |
+|------|----------|----------|
+| `get_subscription_scheduler_status` | ❌ 失败 | `No module named 'redmine_mcp_server.mcp.scheduler'` |
+| `get_sync_progress` | ❌ 失败 | `No module named 'redmine_mcp_server.mcp.tools.redmine_scheduler'` |
+| `list_my_subscriptions` | ✅ 成功 | 返回空列表（正常） |
+
+### 发现的新问题
+
+**文件**: `src/redmine_mcp_server/mcp/tools/subscription_push_tools.py`  
+**行号**: 176  
+**错误导入**:
+```python
+from ..scheduler.subscription_scheduler import get_subscription_scheduler
+```
+
+**正确导入**:
+```python
+from ...scheduler.subscription_scheduler import get_subscription_scheduler
+```
+
+**原因**: 从 `mcp/tools/` 目录到 `scheduler/` 目录需要 3 个点（`...`），但代码只用了 2 个点（`..`）
+
+### 需要额外修复
+
+**文件**: `src/redmine_mcp_server/mcp/tools/subscription_push_tools.py`
+
+**修复命令**:
+```bash
+sed -i 's/from \.\.scheduler/from ...scheduler/g' src/redmine_mcp_server/mcp/tools/subscription_push_tools.py
+```
+
+---
+
+**验证日期**: 2026-03-01  
+**验证者**: OpenClaw (Jaw)  
+**验证状态**: ❌ 修复不完整，需要额外修复
