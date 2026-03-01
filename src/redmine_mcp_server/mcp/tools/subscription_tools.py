@@ -392,7 +392,7 @@ async def list_my_subscriptions() -> Dict[str, Any]:
     try:
         manager = get_subscription_manager()
         subscriptions = manager.list_all_subscriptions()
-        
+
         return {
             "success": True,
             "subscriptions": subscriptions,
@@ -426,18 +426,18 @@ async def unsubscribe_project(
 
     try:
         manager = get_subscription_manager()
-        
+
         # Use default user_id if not provided
         if not user_id:
             user_id = 'anonymous'
-        
+
         if project_id:
             # Unsubscribe specific project
             result = manager.unsubscribe(user_id=user_id, project_id=project_id, channel=channel)
         else:
             # Unsubscribe all for user
             result = manager.unsubscribe_all(user_id=user_id)
-        
+
         return {
             "success": True,
             "message": f"Unsubscribed from project {project_id}" if project_id else "Unsubscribed from all projects",
