@@ -15,10 +15,10 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-# Subscription frequency options
+# Subscription report_type options
 SUBSCRIPTION_FREQUENCIES = Literal["realtime", "daily", "weekly", "monthly"]
 
-# Subscription content level
+# Subscription content report_level
 SUBSCRIPTION_LEVELS = Literal["brief", "detailed"]
 
 # Push channel
@@ -77,7 +77,7 @@ class SubscriptionManager:
                 with conn.cursor() as cur:
                     cur.execute("""
                         SELECT subscription_id, user_id, project_id, channel,
-                               channel_id, frequency, level, push_time,
+                               channel_id, report_type, report_level, send_time,
                                enabled, created_at, updated_at
                         FROM warehouse.ads_user_subscriptions
                         ORDER BY created_at DESC
@@ -92,9 +92,9 @@ class SubscriptionManager:
                             "project_id": row["project_id"],
                             "channel": row["channel"],
                             "channel_id": row["channel_id"],
-                            "frequency": row["frequency"],
-                            "level": row["level"],
-                            "push_time": row["push_time"],
+                            "report_type": row["report_type"],
+                            "report_level": row["report_level"],
+                            "send_time": row["send_time"],
                             "enabled": row["enabled"],
                             "created_at": (
                                 row["created_at"].isoformat()
@@ -127,15 +127,15 @@ class SubscriptionManager:
                         """
                         INSERT INTO warehouse.ads_user_subscriptions (
                             subscription_id, user_id, project_id, channel,
-                            channel_id, frequency, level, push_time,
+                            channel_id, report_type, report_level, send_time,
                             enabled, created_at, updated_at
                         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (subscription_id) DO UPDATE SET
                             project_id = EXCLUDED.project_id,
                             channel_id = EXCLUDED.channel_id,
-                            frequency = EXCLUDED.frequency,
-                            level = EXCLUDED.level,
-                            push_time = EXCLUDED.push_time,
+                            report_type = EXCLUDED.report_type,
+                            report_level = EXCLUDED.report_level,
+                            send_time = EXCLUDED.send_time,
                             enabled = EXCLUDED.enabled,
                             updated_at = EXCLUDED.updated_at
                     """,
@@ -145,9 +145,9 @@ class SubscriptionManager:
                             subscription["project_id"],
                             subscription["channel"],
                             subscription["channel_id"],
-                            subscription["frequency"],
-                            subscription["level"],
-                            subscription.get("push_time"),
+                            subscription["report_type"],
+                            subscription["report_level"],
+                            subscription.get("send_time"),
                             subscription.get("enabled", True),
                             subscription.get("created_at"),
                             subscription["updated_at"],
@@ -202,7 +202,7 @@ class SubscriptionManager:
             channel: push channel (dingtalk/telegram/email)
             channel_id: 渠道 ID (钉钉user_id/Telegram chat ID/邮箱)
             report_type: report type (daily/weekly/monthly)
-            report_level: report level (brief/detailed/comprehensive)
+            report_level: report report_level (brief/detailed/comprehensive)
             send_time: 发送时间 (HH:MM 格式)
             send_day_of_week: 周报发送星期 (Mon/Tue/Wed/Thu/Fri/Sat/Sun)
             send_day_of_month: 月报发送日期 (1-31)
@@ -315,13 +315,13 @@ class SubscriptionManager:
         ]
 
     def get_due_subscriptions(
-        self, frequency: str, current_time: Optional[datetime] = None
+        self, report_type: str, current_time: Optional[datetime] = None
     ) -> List[Dict[str, Any]]:
         """
         Get subscriptions due for push
 
         Args:
-            frequency: 频率类型 (daily/weekly/monthly)
+            report_type: 频率类型 (daily/weekly/monthly)
             current_time: 当前时间
 
         Returns:
@@ -337,29 +337,29 @@ class SubscriptionManager:
             if not sub.get("enabled", True):
                 continue
 
-            if sub["frequency"] != frequency:
+            if sub["report_type"] != report_type:
                 continue
 
-            push_time = sub.get("push_time")
-            if not push_time:
+            send_time = sub.get("send_time")
+            if not send_time:
                 # No time set, push by default
                 due_subs.append(sub)
                 continue
 
             # Parse push time
-            if frequency == "daily":
+            if report_type == "daily":
                 # Format: "09:00"
                 try:
-                    hour, minute = map(int, push_time.split(":"))
+                    hour, minute = map(int, send_time.split(":"))
                     if current_time.hour == hour and current_time.minute >= minute:
                         due_subs.append(sub)
                 except:
                     pass
 
-            elif frequency == "weekly":
+            elif report_type == "weekly":
                 # Format: "Mon 09:00"
                 try:
-                    day_str, time_str = push_time.split(" ", 1)
+                    day_str, time_str = send_time.split(" ", 1)
                     hour, minute = map(int, time_str.split(":"))
 
                     days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -381,7 +381,7 @@ class SubscriptionManager:
         sub = subscriptions[subscription_id]
 
         # Update allowed fields
-        allowed_fields = ["frequency", "level", "push_time", "enabled"]
+        allowed_fields = ["report_type", "report_level", "send_time", "enabled"]
         for key, value in kwargs.items():
             if key in allowed_fields:
                 sub[key] = value
@@ -408,7 +408,7 @@ class SubscriptionManager:
         by_project = {}
 
         for sub in subs:
-            freq = sub.get("frequency", "unknown")
+            freq = sub.get("report_type", "unknown")
             channel = sub.get("channel", "unknown")
             project = sub.get("project_id", "unknown")
 
