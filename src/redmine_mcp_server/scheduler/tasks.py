@@ -352,7 +352,7 @@ class RedmineSyncScheduler:
                 logger.info(
                     "Note: Full/progressive sync must be triggered manually via MCP tools"
                 )
-                self.scheduler.run_forever()
+                self.scheduler.start()
 
             thread = threading.Thread(target=run_scheduler, daemon=True)
             thread.start()
