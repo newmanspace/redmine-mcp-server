@@ -1,0 +1,41 @@
+#!/bin/bash
+# Pre-commit hook to enforce development standards
+
+set -e
+
+echo "Running pre-commit checks..."
+
+# Check 1: No Chinese characters in SQL files
+echo "Checking for non-English characters in SQL files..."
+if grep -P "[\x{4e00}-\x{9fff}]" init-scripts/*.sql 2>/dev/null; then
+    echo "ERROR: Non-English characters found in SQL files!"
+    echo "Please use English comments only."
+    exit 1
+fi
+echo "OK: No non-English characters in SQL files"
+
+# Check 2: Commit message confirmation
+echo "Checking commit message..."
+COMMIT_MSG_FILE=$1
+COMMIT_MSG=$(cat $COMMIT_MSG_FILE)
+
+if [[ ! $COMMIT_MSG =~ ^(feat|fix|refactor|docs|style|test|chore): ]]; then
+    echo "ERROR: Commit message must start with type prefix"
+    echo "Valid types: feat, fix, refactor, docs, style, test, chore"
+    echo "Example: feat: add new feature"
+    exit 1
+fi
+echo "OK: Commit message format is valid"
+
+# Check 3: File naming convention
+echo "Checking file naming convention..."
+if ls init-scripts/*.sql 2>/dev/null | grep -v -E 'v[0-9]+\.[0-9]+\.[0-9]+_[a-zA-Z0-9-]+\.sql'; then
+    echo "ERROR: SQL files must follow naming: v{version}_{description}.sql"
+    echo "Example: v0.10.0_init-schema.sql"
+    exit 1
+fi
+echo "OK: File naming convention is valid"
+
+echo ""
+echo "All pre-commit checks passed!"
+echo ""

@@ -135,7 +135,7 @@ CREATE TABLE warehouse.ods_issue_statuses (
 
 
 -- -----------------------------------------------------
--- 2.2 DIM Layer - Dimension Tables (维度表)
+-- 2.2 DIM Layer - Dimension Tables
 -- -----------------------------------------------------
 
 CREATE TABLE warehouse.dim_role_category (
@@ -190,7 +190,7 @@ CREATE TABLE warehouse.dim_issue (
 
 
 -- -----------------------------------------------------
--- 2.3 DWD Layer - Data Warehouse Detail (明细数据层)
+-- 2.3 DWD Layer - Data Warehouse Detail
 -- -----------------------------------------------------
 
 CREATE TABLE warehouse.dwd_issue_daily_snapshot (
@@ -230,7 +230,7 @@ CREATE TABLE warehouse.dwd_user_project_role (
 
 
 -- -----------------------------------------------------
--- 2.4 DWS Layer - Data Warehouse Summary (汇总数据层)
+-- 2.4 DWS Layer - Data Warehouse Summary
 -- -----------------------------------------------------
 
 CREATE TABLE warehouse.dws_project_daily_summary (
@@ -314,7 +314,7 @@ CREATE TABLE warehouse.dws_user_monthly_workload (
 
 
 -- -----------------------------------------------------
--- 2.5 ADS Layer - Application Data Store (应用数据层)
+-- 2.5 ADS Layer - Application Data Store
 -- -----------------------------------------------------
 
 CREATE TABLE warehouse.ads_contributor_report (
@@ -446,7 +446,7 @@ CREATE TABLE warehouse.ads_user_subscriptions (
 
 
 -- =====================================================
--- 3. 索引 (Indexes)
+-- 3. Indexes
 -- =====================================================
 
 CREATE INDEX IF NOT EXISTS idx_ods_issues_project ON warehouse.ods_issues(project_id);
@@ -456,7 +456,7 @@ CREATE INDEX IF NOT EXISTS idx_ods_journals_issue ON warehouse.ods_journals(issu
 
 
 -- =====================================================
--- 4. 授权 (Grants)
+-- 4. Grants
 -- =====================================================
 
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA warehouse TO redmine_warehouse;
@@ -464,7 +464,7 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA warehouse TO redmine_warehouse;
 
 
 -- =====================================================
--- 5. 注释 (Comments)
+-- 5. Comments
 -- =====================================================
 
 COMMENT ON SCHEMA warehouse IS 'Redmine MCP data warehouse schema';
@@ -510,10 +510,10 @@ COMMENT ON TABLE warehouse.ads_user_subscriptions IS 'ADS user subscriptions';
 
 
 -- =====================================================
--- 3. 存储函数 (Storage Functions)
+-- 3. Storage Functions
 -- =====================================================
 
--- 3.1 项目每日汇总刷新函数
+-- 3.1 Refresh daily project summary function
 CREATE OR REPLACE FUNCTION warehouse.refresh_daily_summary(
     p_project_id INTEGER,
     p_snapshot_date DATE
@@ -532,15 +532,15 @@ BEGIN
         COUNT(*) as total_issues,
         SUM(CASE WHEN is_new THEN 1 ELSE 0 END) as new_issues,
         SUM(CASE WHEN is_closed THEN 1 ELSE 0 END) as closed_issues,
-        SUM(CASE WHEN status_name = '新建' THEN 1 ELSE 0 END) as status_new,
-        SUM(CASE WHEN status_name = '进行中' THEN 1 ELSE 0 END) as status_in_progress,
-        SUM(CASE WHEN status_name = '已解决' THEN 1 ELSE 0 END) as status_resolved,
-        SUM(CASE WHEN status_name = '已关闭' THEN 1 ELSE 0 END) as status_closed,
-        SUM(CASE WHEN priority_name = '立刻' THEN 1 ELSE 0 END) as priority_immediate,
-        SUM(CASE WHEN priority_name = '紧急' THEN 1 ELSE 0 END) as priority_urgent,
-        SUM(CASE WHEN priority_name = '高' THEN 1 ELSE 0 END) as priority_high,
-        SUM(CASE WHEN priority_name = '普通' THEN 1 ELSE 0 END) as priority_normal,
-        SUM(CASE WHEN priority_name = '低' THEN 1 ELSE 0 END) as priority_low
+        SUM(CASE WHEN status_name = 'New' THEN 1 ELSE 0 END) as status_new,
+        SUM(CASE WHEN status_name = 'In Progress' THEN 1 ELSE 0 END) as status_in_progress,
+        SUM(CASE WHEN status_name = 'Resolved' THEN 1 ELSE 0 END) as status_resolved,
+        SUM(CASE WHEN status_name = 'Closed' THEN 1 ELSE 0 END) as status_closed,
+        SUM(CASE WHEN priority_name = 'Immediate' THEN 1 ELSE 0 END) as priority_immediate,
+        SUM(CASE WHEN priority_name = 'Urgent' THEN 1 ELSE 0 END) as priority_urgent,
+        SUM(CASE WHEN priority_name = 'High' THEN 1 ELSE 0 END) as priority_high,
+        SUM(CASE WHEN priority_name = 'Normal' THEN 1 ELSE 0 END) as priority_normal,
+        SUM(CASE WHEN priority_name = 'Low' THEN 1 ELSE 0 END) as priority_low
     FROM warehouse.dwd_issue_daily_snapshot
     WHERE project_id = p_project_id AND snapshot_date = p_snapshot_date
     GROUP BY project_id, snapshot_date
@@ -560,7 +560,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 3.2 Issue 贡献者汇总刷新函数
+-- 3.2 Refresh issue contributor summary function
 CREATE OR REPLACE FUNCTION warehouse.refresh_contributor_summary(
     p_issue_id INTEGER,
     p_project_id INTEGER
@@ -597,7 +597,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 3.3 项目角色分布刷新函数
+-- 3.3 Refresh project role distribution function
 CREATE OR REPLACE FUNCTION warehouse.refresh_project_role_distribution(
     p_project_id INTEGER,
     p_snapshot_date DATE
@@ -631,7 +631,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 3.4 用户工作量刷新函数
+-- 3.4 Refresh user workload function
 CREATE OR REPLACE FUNCTION warehouse.refresh_user_workload(
     p_user_id INTEGER,
     p_user_name VARCHAR,
@@ -670,10 +670,10 @@ $$ LANGUAGE plpgsql;
 
 
 -- =====================================================
--- 4. 视图 (Views)
+-- 4. Views
 -- =====================================================
 
--- 4.1 贡献者排行榜视图
+-- 4.1 Contributor ranking view
 CREATE OR REPLACE VIEW warehouse.v_ads_contributor_ranking AS
 SELECT
     project_id,
@@ -690,7 +690,7 @@ SELECT
                  ORDER BY total_journals DESC) AS journal_rank
 FROM warehouse.ads_contributor_report;
 
--- 4.2 项目维度当前视图
+-- 4.2 Project dimension current view
 CREATE OR REPLACE VIEW warehouse.v_dim_project_current AS
 SELECT 
     project_id,
@@ -702,7 +702,7 @@ SELECT
     is_active
 FROM warehouse.dim_project;
 
--- 4.3 用户维度当前视图
+-- 4.3 User dimension current view
 CREATE OR REPLACE VIEW warehouse.v_dim_user_current AS
 SELECT 
     user_id,
@@ -712,7 +712,7 @@ SELECT
     is_active
 FROM warehouse.dim_user;
 
--- 4.4 Issue 维度当前视图
+-- 4.4 Issue dimension current view
 CREATE OR REPLACE VIEW warehouse.v_dim_issue_current AS
 SELECT 
     issue_id,
@@ -723,7 +723,7 @@ SELECT
     is_closed
 FROM warehouse.dim_issue;
 
--- 4.5 项目健康度最新视图
+-- 4.5 Project health latest view
 CREATE OR REPLACE VIEW warehouse.v_ads_project_health_latest AS
 SELECT DISTINCT ON (project_id)
     project_id,
@@ -737,7 +737,7 @@ SELECT DISTINCT ON (project_id)
 FROM warehouse.ads_project_health_report
 ORDER BY project_id, snapshot_date DESC;
 
--- 4.6 用户工作量月度汇总视图
+-- 4.6 User workload monthly summary view
 CREATE OR REPLACE VIEW warehouse.v_ads_user_workload_monthly AS
 SELECT
     user_id,
@@ -754,7 +754,7 @@ ORDER BY year_month DESC, rank_in_month;
 
 
 -- =====================================================
--- 5. 最终授权 (Final Grants)
+-- 5. Final Grants
 -- =====================================================
 
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA warehouse TO redmine_warehouse;
