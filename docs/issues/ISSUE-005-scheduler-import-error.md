@@ -1,9 +1,11 @@
-# ISSUE-005 - 调度器模块导入错误
+# ISSUE-005 - Scheduler Module Import Error
 
-**创建日期**: 2026-03-01  
-**严重性**: 🔴 高  
-**状态**: ⏳ 待修复  
-**影响范围**: 数据同步、订阅调度、分析工具
+**Created**: 2026-03-01  
+**Severity**: 🔴 High  
+**Status**: ✅ Fixed  
+**Fixed Version**: v0.10.1  
+**Fixed Date**: 2026-03-01  
+**Fixed By**: qwen-code
 
 ---
 
@@ -176,27 +178,46 @@ def test_all_imports_work():
 ### 5. 使用 IDE 重构工具
 
 使用 PyCharm 或 VSCode 的重构功能：
-- 右键模块 → Refactor → Move
-- IDE 会自动更新所有导入路径
-- 比手动修改更可靠
+- Right-click module → Refactor → Move
+- IDE automatically updates all import paths
+- More reliable than manual changes
 
 ---
 
-## 相关文件
+## Related Files
 
-- 问题文件：`src/redmine_mcp_server/mcp/tools/analytics_tools.py`
-- 问题文件：`src/redmine_mcp_server/mcp/tools/warehouse_tools.py`
-- 实际模块：`src/redmine_mcp_server/scheduler/ads_scheduler.py`
-- 实际模块：`src/redmine_mcp_server/scheduler/subscription_scheduler.py`
-
----
-
-## 关联 Issue
-
-- [ISSUE-001](./ISSUE-001-import-path-error.md) - Python 导入路径错误（类似问题）
+- Fixed files:
+  - `src/redmine_mcp_server/mcp/tools/analytics_tools.py`
+  - `src/redmine_mcp_server/mcp/tools/warehouse_tools.py`
+- Actual module: `src/redmine_mcp_server/scheduler/ads_scheduler.py`
 
 ---
 
-**报告人**: Jaw  
-**报告日期**: 2026-03-01  
-**待修复**: 需要 qwen-code 修复代码
+## Related Issues
+
+- [ISSUE-001](./ISSUE-001-import-path-error.md) - Similar import path error
+
+---
+
+## ✅ Resolution
+
+**Fix Applied**:
+```bash
+# Fix import paths
+sed -i 's/from \.redmine_scheduler import get_scheduler/from ...scheduler.ads_scheduler import get_scheduler/' analytics_tools.py
+sed -i 's/from \.redmine_scheduler import get_scheduler/from ...scheduler.ads_scheduler import get_scheduler/' warehouse_tools.py
+```
+
+**Verification**:
+- ✅ analytics_tools imports work
+- ✅ warehouse_tools imports work
+- ✅ All unit tests pass (86 tests)
+- ✅ All service tests pass (29 tests)
+
+---
+
+**Reported By**: Jaw  
+**Report Date**: 2026-03-01  
+**Fixed By**: qwen-code  
+**Fixed Date**: 2026-03-01  
+**Fixed Commit**: 9dcc4ec

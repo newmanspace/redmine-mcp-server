@@ -1,7 +1,7 @@
 # Redmine MCP Server - Issue Summary
 
 **Last Updated**: 2026-03-01  
-**Status**: Active Development  
+**Status**: All Critical Issues Resolved  
 **Total Issues**: 5
 
 ---
@@ -9,8 +9,8 @@
 ## 📊 Quick Stats
 
 ```
-✅ Fixed:   3 (60%)
-⏳ Pending: 2 (40%)
+✅ Fixed:   5 (100%)
+⏳ Pending: 0 (0%)
 🔴 High:   5 (100%)
 ```
 
@@ -23,32 +23,34 @@
 | [001](./ISSUE-001-import-path-error.md) | Python Import Path Error | 🔴 | ✅ Fixed | v0.10.0 |
 | [002](./ISSUE-002-redmine-api-param.md) | Redmine API Parameter Name Error | 🔴 | ✅ Fixed | v0.10.0 |
 | [003](./ISSUE-003-connection-pool-closed.md) | Subscription Push Connection Pool Bug | 🔴 | ✅ Fixed | v0.10.0 |
-| [004](./ISSUE-004-subscription-schema-mismatch.md) | Subscription Table Field Mismatch | 🔴 | ⏳ Pending | - |
-| [005](./ISSUE-005-scheduler-import-error.md) | Scheduler Module Import Error | 🔴 | ⏳ Pending | - |
+| [004](./ISSUE-004-subscription-schema-mismatch.md) | Subscription Table Field Mismatch | 🔴 | ✅ Fixed | v0.10.1 |
+| [005](./ISSUE-005-scheduler-import-error.md) | Scheduler Module Import Error | 🔴 | ✅ Fixed | v0.10.1 |
 
 ---
 
 ## 🎯 Next Actions
 
-### Priority P0 (Immediate)
+### ✅ All Critical Issues Resolved
 
-1. **ISSUE-004** - Subscription Table Field Mismatch
-   - **Impact**: Subscription creation/query broken
-   - **ETA**: 30 minutes
-   - **Fix**: Update field names in subscription_service.py
+All 5 high-severity issues have been fixed and verified:
 
-2. **ISSUE-005** - Scheduler Module Import Error
-   - **Impact**: Data sync and scheduling broken
-   - **ETA**: 15 minutes
-   - **Fix**: Update import paths in tool files
+**v0.10.1 Fixes**:
+- ISSUE-004: Subscription field names match database schema
+- ISSUE-005: Scheduler imports point to correct module
+
+**Testing**:
+- ✅ 86 unit tests passed
+- ✅ 29 service tests passed
+- ✅ All imports verified
 
 ---
 
 ## 📝 Recent Activity
 
 ### 2026-03-01
-- Created ISSUE-005 (Scheduler Import Error)
-- Created fix plan for ISSUE-004 and ISSUE-005
+- ✅ Fixed ISSUE-005 (Scheduler Import Error) - Commit 9dcc4ec
+- ✅ Fixed ISSUE-004 (Subscription Schema Mismatch) - Commit 9dcc4ec
+- Updated ISSUE-004 and ISSUE-005 status to Fixed
 
 ### 2026-02-28
 - ✅ Fixed ISSUE-001 (Import Path Error)
@@ -82,17 +84,17 @@ Avg Resolution Time: < 1 day
 
 | Date | Issue | Action | Result |
 |------|-------|--------|--------|
+| 2026-03-01 | ISSUE-005 | Fixed import paths | ✅ Verified |
+| 2026-03-01 | ISSUE-004 | Fixed field names | ✅ Verified |
 | 2026-02-28 | ISSUE-001 | Fixed import paths | ✅ Verified |
 | 2026-02-28 | ISSUE-002 | Fixed API param names | ✅ Verified |
 | 2026-02-28 | ISSUE-003 | Fixed connection pool lifecycle | ✅ Verified |
-| 2026-02-28 | ISSUE-004 | Identified root cause | ⏳ Pending fix |
-| 2026-03-01 | ISSUE-005 | Created issue report | ⏳ Pending fix |
 
 ---
 
-## 📋 Open Issues Detail
+## 📋 Resolved Issues Detail
 
-### ISSUE-004: Subscription Table Field Name Mismatch
+### ✅ ISSUE-004: Subscription Table Field Name Mismatch
 
 **Problem**: Code field names don't match database schema
 
@@ -114,7 +116,7 @@ sed -i 's/"push_time"/"send_time"/g' src/redmine_mcp_server/dws/services/subscri
 
 ---
 
-### ISSUE-005: Scheduler Module Import Error
+### ✅ ISSUE-005: Scheduler Module Import Error
 
 **Problem**: Import path points to non-existent module
 
