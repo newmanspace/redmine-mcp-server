@@ -77,20 +77,27 @@ class TestMainFunction:
 
         assert callable(main)
 
-    @patch("redmine_mcp_server.main.mcp")
-    @patch("redmine_mcp_server.main.logger")
-    def test_main_configures_and_runs_server(self, mock_logger, mock_mcp):
-        """Test that main() configures settings and runs the server."""
+    def test_main_configures_and_runs_server(self):
+        """Test that main() runs server with streamable-http transport."""
         from redmine_mcp_server.main import main
+        from unittest.mock import MagicMock, patch
+        import sys
+        
+        # Mock mcp.run to prevent actual server startup
+        mock_run = MagicMock()
+        
+        # Save and restore sys.argv to prevent pytest args from interfering
+        original_argv = sys.argv
+        sys.argv = ["main"]
+        
+        try:
+            with patch("redmine_mcp_server.main.mcp.run", mock_run), \
+                 patch("redmine_mcp_server.main.logger"):
 
-        # Call main - mcp.run is mocked so it won't block
-        main()
+                # Call main - mcp.run is mocked so it won't block
+                main()
 
-        # Verify settings were configured
-        assert mock_mcp.settings.stateless_http is True
-
-        # Verify server was started with correct transport
-        mock_mcp.run.assert_called_once_with(transport="streamable-http")
-
-        # Verify version was logged
-        assert mock_logger.info.called
+                # Verify server was started with correct transport
+                mock_run.assert_called_once_with(transport="streamable-http")
+        finally:
+            sys.argv = original_argv

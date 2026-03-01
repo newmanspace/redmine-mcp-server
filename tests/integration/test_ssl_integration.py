@@ -8,6 +8,7 @@ Run with: python tests/run_tests.py --integration
 import pytest
 import os
 import sys
+import subprocess
 from pathlib import Path
 from unittest.mock import patch
 
@@ -15,28 +16,43 @@ from unittest.mock import patch
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 
+@pytest.fixture(scope="session", autouse=True)
+def generate_ssl_certificates():
+    """Generate SSL test certificates before running tests."""
+    ssl_dir = Path(__file__).parent.parent / "fixtures/ssl"
+    generate_script = ssl_dir / "generate-test-certs.sh"
+    
+    if generate_script.exists():
+        # Generate certificates if ca-cert.pem doesn't exist
+        ca_cert = ssl_dir / "ca-cert.pem"
+        if not ca_cert.exists():
+            subprocess.run([str(generate_script)], check=True, cwd=str(ssl_dir))
+    
+    return str(ssl_dir)
+
+
 @pytest.fixture
-def ssl_cert_path():
+def ssl_cert_path(generate_ssl_certificates):
     """Return path to test CA certificate."""
-    return str(Path(__file__).parent / "fixtures/ssl/ca-cert.pem")
+    return str(Path(generate_ssl_certificates) / "ca-cert.pem")
 
 
 @pytest.fixture
-def client_cert_path():
+def client_cert_path(generate_ssl_certificates):
     """Return path to test client certificate."""
-    return str(Path(__file__).parent / "fixtures/ssl/client-cert.pem")
+    return str(Path(generate_ssl_certificates) / "client-cert.pem")
 
 
 @pytest.fixture
-def client_key_path():
+def client_key_path(generate_ssl_certificates):
     """Return path to test client key."""
-    return str(Path(__file__).parent / "fixtures/ssl/client-key.pem")
+    return str(Path(generate_ssl_certificates) / "client-key.pem")
 
 
 @pytest.fixture
-def combined_cert_path():
+def combined_cert_path(generate_ssl_certificates):
     """Return path to combined client certificate."""
-    return str(Path(__file__).parent / "fixtures/ssl/client-combined.pem")
+    return str(Path(generate_ssl_certificates) / "client-combined.pem")
 
 
 @pytest.mark.integration
