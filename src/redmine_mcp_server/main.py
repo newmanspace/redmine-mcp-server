@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+from contextlib import asynccontextmanager
 from datetime import datetime
 from importlib.metadata import version, PackageNotFoundError
 
@@ -47,13 +48,68 @@ def get_version() -> str:
         return "dev"
 
 
+@asynccontextmanager
+async def lifespan(app):
+    """Lifespan context manager for startup/shutdown"""
+    logger.info(f"Redmine MCP Server v{get_version()} starting...")
+
+    # Initialize schedulers on startup
+    try:
+        # 1. Initialize subscription manager
+        from .dws.services import subscription_service
+
+        subscription_service.init_subscription_manager()
+        logger.info("Subscription manager initialized")
+    except Exception as e:
+        logger.error(f"Failed to initialize subscription manager: {e}")
+
+    # 2. Initialize subscription scheduler (for sending reports)
+    if init_subscription_scheduler:
+        try:
+            init_subscription_scheduler()
+            logger.info("Subscription scheduler started (auto-send reports)")
+        except Exception as e:
+            logger.error(f"Failed to start subscription scheduler: {e}")
+            logger.warning("Continuing without subscription scheduler")
+
+    # 3. Initialize warehouse sync scheduler
+    sync_enabled = os.getenv("WAREHOUSE_SYNC_ENABLED", "true").lower() == "true"
+    if sync_enabled and init_sync_scheduler:
+        try:
+            logger.info("Initializing warehouse sync scheduler...")
+            init_sync_scheduler()
+            logger.info("Warehouse sync scheduler started")
+        except Exception as e:
+            logger.error(f"Failed to start sync scheduler: {e}")
+            logger.warning("Continuing without sync scheduler")
+
+    yield
+
+    # Shutdown
+    logger.info("Shutting down...")
+    if shutdown_subscription_scheduler:
+        shutdown_subscription_scheduler()
+    if shutdown_sync_scheduler:
+        shutdown_sync_scheduler()
+
+    # Close subscription manager connection
+    try:
+        from .dws.services import subscription_service
+
+        if subscription_service.subscription_manager:
+            subscription_service.subscription_manager.close()
+            logger.info("Subscription manager connection closed")
+    except Exception as e:
+        logger.error(f"Error closing subscription manager: {e}")
+
+
 # Apply settings at module level
 mcp.settings.host = os.getenv("SERVER_HOST", "0.0.0.0")
 mcp.settings.port = int(os.getenv("SERVER_PORT", "8000"))
 mcp.settings.stateless_http = True
 
 # Export the Starlette/FastAPI app for testing and external use
-app = mcp.streamable_http_app()
+app = mcp.streamable_http_app(lifespan=lifespan)
 
 
 # Add health check endpoint
@@ -105,37 +161,6 @@ def main():
 
     logger.info(f"Starting with transport: {transport}")
 
-    # Initialize schedulers (only for HTTP transport)
-    if transport == "streamable-http":
-        # 1. Initialize subscription manager
-        try:
-            from .dws.services import subscription_service
-
-            subscription_service.init_subscription_manager()
-            logger.info("Subscription manager initialized")
-        except Exception as e:
-            logger.error(f"Failed to initialize subscription manager: {e}")
-
-        # 2. Initialize subscription scheduler (for sending reports)
-        if init_subscription_scheduler:
-            try:
-                init_subscription_scheduler()
-                logger.info("Subscription scheduler started (auto-send reports)")
-            except Exception as e:
-                logger.error(f"Failed to start subscription scheduler: {e}")
-                logger.warning("Continuing without subscription scheduler")
-
-        # 3. Initialize warehouse sync scheduler
-        sync_enabled = os.getenv("WAREHOUSE_SYNC_ENABLED", "true").lower() == "true"
-        if sync_enabled and init_sync_scheduler:
-            try:
-                logger.info("Initializing warehouse sync scheduler...")
-                init_sync_scheduler()
-                logger.info("Warehouse sync scheduler started")
-            except Exception as e:
-                logger.error(f"Failed to start sync scheduler: {e}")
-                logger.warning("Continuing without sync scheduler")
-
     if transport == "stdio":
         mcp.settings.port = 0
 
@@ -148,23 +173,6 @@ if __name__ == "__main__":
     def signal_handler(sig, frame):
         """Handle shutdown signal"""
         logger.info("Shutting down...")
-
-        # Shutdown schedulers
-        if shutdown_subscription_scheduler:
-            shutdown_subscription_scheduler()
-        if shutdown_sync_scheduler:
-            shutdown_sync_scheduler()
-
-        # Close subscription manager connection
-        try:
-            from .dws.services import subscription_service
-
-            if subscription_service.subscription_manager:
-                subscription_service.subscription_manager.close()
-                logger.info("Subscription manager connection closed")
-        except Exception as e:
-            logger.error(f"Error closing subscription manager: {e}")
-
         sys.exit(0)
 
     signal.signal(signal.SIGINT, signal_handler)
